@@ -1,0 +1,5 @@
+# Ignore tests folder
+tests/fixtures
+lib
+**/node_modules
+**/.git

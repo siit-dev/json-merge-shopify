@@ -1,0 +1,136 @@
+{
+  "current": {
+    "social_facebook_link": "https://www.facebook.com/Examplina.france/",
+    "social_instagram_link": "https://www.instagram.com/Examplina_official/?hl=en",
+    "favicon": "shopify://shop_images/Favicon.png",
+    "thank_img": "shopify://shop_images/Image_2x_b23407a1-c388-403d-b9b0-4b4cf8888b92.jpg",
+    "thank_img_mobile": "shopify://shop_images/Image_2x_63e1cf13-01af-4d8d-96a2-579d995af337.jpg",
+    "review_img": "shopify://shop_images/Avis_verifie.png",
+    "checkout_logo_image": "shopify://shop_images/Logo_2x_7c127083-5084-43c5-8bac-5fdca83eaa5e.png",
+    "checkout_logo_size": "large",
+    "discount_code": "Examplina10",
+    "checkout_input_background_color_mode": "white",
+    "checkout_sidebar_background_color": "#ffffff",
+    "checkout_accent_color": "#c09b78",
+    "checkout_button_color": "#000000",
+    "colors_solid_button_labels": "#FFFFFF",
+    "colors_accent_1": "#121212",
+    "colors_accent_2": "#334FB4",
+    "colors_text": "#121212",
+    "colors_outline_button_labels": "#121212",
+    "colors_background_1": "#FFFFFF",
+    "colors_background_2": "#F3F3F3",
+    "type_header_font": "assistant_n4",
+    "type_body_font": "assistant_n4",
+    "product_color_label": "Coloris,Color",
+    "product_hide_option_value": "Pointure,Taille,Size,Matière,Material,Femme,Woman,",
+    "product_hideable_features": "Hauteur du talon,Heel height,Femme,Woman,Homme,Man,5 à 7 cm,0-3 cm,4-5 cm,6-8 cm,",
+    "product_hideable_tags": "Genre,Genre type,Femme,Woman,Homme,Man,0-3 cm,4-5 cm,6-8 cm,Best-sellers,Glitter,Cuir daim,Cuir végétal,Cuir python,Raphia,Cuir miror,Cuir vachette,Cuir métal grain,Cuir old métal,Cuir poils imprimés,Cuir old metal,",
+    "customize_label": "Personnaliser,Customize,Personnalize",
+    "color_label": "Coloris,Color,Colors",
+    "sections": {
+      "announcement-bar": {
+        "type": "announcement-bar",
+        "blocks": {
+          "announcement-bar-0": {
+            "type": "announcement",
+            "settings": {
+              "color_scheme": "background-1"
+            }
+          }
+        },
+        "block_order": [
+          "announcement-bar-0"
+        ],
+        "settings": {
+        }
+      },
+      "header": {
+        "type": "header",
+        "blocks": {
+          "d32f0326-30ea-4864-8293-d01e53dc78fa": {
+            "type": "announcement_container",
+            "settings": {
+              "announce_title": "CONCEPTION ET FABRICATION ARTISANALE FRANÇAISE ❤"
+            }
+          },
+          "a2ec7d11-2629-443a-af74-3f451a89a3ce": {
+            "type": "announcement_container",
+            "disabled": true,
+            "settings": {
+              "announce_title": "Notre atelier nantais ferme ses portes du lundi 1er au lundi 22 Août 2022."
+            }
+          }
+        },
+        "block_order": [
+          "d32f0326-30ea-4864-8293-d01e53dc78fa",
+          "a2ec7d11-2629-443a-af74-3f451a89a3ce"
+        ],
+        "settings": {
+          "menu": "main-menu",
+          "mobile-menu": "mobile-menu",
+          "button_label": "Espace thérapeute",
+          "button_link": "",
+          "message": true,
+          "home_page_only": false
+        }
+      },
+      "footer": {
+        "type": "footer",
+        "settings": {
+          "title_1": "LABORATOIRE FRANÇAIS",
+          "subtitle_1": "depuis 1993",
+          "image_1": "shopify://shop_images/Labo.png",
+          "title_2": "Livraison offerte",
+          "subtitle_2": "Partout en France",
+          "image_2": "shopify://shop_images/LivraisonOfferte_4cbe889c-1daf-4ee2-822d-24fe8cec1bc1.png",
+          "title_3": "À VOTRE ÉCOUTE",
+          "subtitle_3": "au 01 42 24 98 73",
+          "image_3": "shopify://shop_images/Phone.png",
+          "title_4": "PAIEMENT SÉCURISÉ",
+          "subtitle_4": "lorem ipsum",
+          "image_4": "shopify://shop_images/Secure.png",
+          "menu_descr": "<p>Concepteur et distributeur français de compléments alimentaires naturels depuis 1993.</p>",
+          "footer_top_menu": "footer",
+          "footer_bottom_menu": "footer-bottom-menu",
+          "newsletter_title": "Inscrivez-vous à notre newsletter",
+          "newsletter_title_mobile": "Notre newsletter"
+        }
+      }
+    },
+    "content_for_index": [
+
+    ]
+  },
+  "presets": {
+    "Default": {
+      "colors_solid_button_labels": "#FFFFFF",
+      "colors_accent_1": "#121212",
+      "colors_accent_2": "#334FB4",
+      "colors_text": "#121212",
+      "colors_outline_button_labels": "#121212",
+      "colors_background_1": "#FFFFFF",
+      "colors_background_2": "#F3F3F3",
+      "type_header_font": "assistant_n4",
+      "type_body_font": "assistant_n4",
+      "sections": {
+        "announcement-bar": {
+          "type": "announcement-bar",
+          "blocks": {
+            "announcement-bar-0": {
+              "type": "announcement",
+              "settings": {
+                "color_scheme": "background-1"
+              }
+            }
+          },
+          "block_order": [
+            "announcement-bar-0"
+          ],
+          "settings": {
+          }
+        }
+      }
+    }
+  }
+}

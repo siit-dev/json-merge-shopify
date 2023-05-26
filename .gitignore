@@ -1,0 +1,15 @@
+*.vscode
+!.vscode/extensions.json
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+.better-deploy/
+sftp-config.json
+.remote-sync*.json
+
+node_modules/
+.DS_Store
+*.log
+
+lib/
