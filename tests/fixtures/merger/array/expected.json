@@ -8,6 +8,35 @@
     "theme_support_url": "https://smartimpact.fr"
   },
   {
+    "name": "t:settings_schema.search_input.name",
+    "settings": [
+      {
+        "type": "header",
+        "content": "t:settings_schema.search_input.settings.header.content"
+      },
+      {
+        "type": "checkbox",
+        "id": "predictive_search_enabled",
+        "default": true,
+        "label": "t:settings_schema.search_input.settings.predictive_search_enabled.label"
+      },
+      {
+        "type": "checkbox",
+        "id": "predictive_search_show_vendor",
+        "default": false,
+        "label": "t:settings_schema.search_input.settings.predictive_search_show_vendor.label",
+        "info": "t:settings_schema.search_input.settings.predictive_search_show_vendor.info"
+      },
+      {
+        "type": "checkbox",
+        "id": "predictive_search_show_price",
+        "default": true,
+        "label": "t:settings_schema.search_input.settings.predictive_search_show_price.label",
+        "info": "t:settings_schema.search_input.settings.predictive_search_show_price.info"
+      }
+    ]
+  },
+  {
     "name": "t:settings_schema.social-media.name",
     "settings": [
       {
@@ -71,52 +100,12 @@
     ]
   },
   {
-    "name": "t:settings_schema.search_input.name",
-    "settings": [
-      {
-        "type": "header",
-        "content": "t:settings_schema.search_input.settings.header.content"
-      },
-      {
-        "type": "checkbox",
-        "id": "predictive_search_enabled",
-        "default": true,
-        "label": "t:settings_schema.search_input.settings.predictive_search_enabled.label"
-      },
-      {
-        "type": "checkbox",
-        "id": "predictive_search_show_vendor",
-        "default": false,
-        "label": "t:settings_schema.search_input.settings.predictive_search_show_vendor.label",
-        "info": "t:settings_schema.search_input.settings.predictive_search_show_vendor.info"
-      },
-      {
-        "type": "checkbox",
-        "id": "predictive_search_show_price",
-        "default": true,
-        "label": "t:settings_schema.search_input.settings.predictive_search_show_price.label",
-        "info": "t:settings_schema.search_input.settings.predictive_search_show_price.info"
-      }
-    ]
-  },
-  {
-    "name": "t:settings_schema.favicon.name",
-    "settings": [
-      {
-        "type": "image_picker",
-        "id": "favicon",
-        "label": "t:settings_schema.favicon.settings.favicon.label",
-        "info": "t:settings_schema.favicon.settings.favicon.info"
-      }
-    ]
-  },
-  {
     "name": "Club discount code",
     "settings": [
       {
         "type": "text",
         "id": "club_discount_code",
-        "label": "Club discount code"
+        "label": "Club discount code (ex: CLUB10)"
       },
       {
         "type": "text",
@@ -126,24 +115,18 @@
     ]
   },
   {
-    "name": "Thank you page",
+    "name": "Review Section - Thank you page",
     "settings": [
       {
         "type": "image_picker",
-        "id": "thank_img",
+        "id": "review_img",
         "label": "Image",
-        "info": "Image pour Merci page - Desktop"
-      },
-      {
-        "type": "image_picker",
-        "id": "thank_img_mobile",
-        "label": "Image",
-        "info": "Image pour Merci page - Mobile"
+        "info": "Image pour review section"
       }
     ]
   },
   {
-    "name": "Review Section",
+    "name": "Thank you page2",
     "settings": [
       {
         "type": "image_picker",
