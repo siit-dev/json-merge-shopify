@@ -16,7 +16,7 @@
 
 import { Merger } from './Merger';
 import * as fs from 'fs';
-import jsonFormatter from '../formatter/formatter';
+import jsonFormatter from '../formatter/formatJson';
 
 /**
  * This is the information we pass through in the driver config
