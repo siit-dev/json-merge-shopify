@@ -14,7 +14,7 @@
  * *.json merge=json-merge-driver
  */
 
-import { Merger } from './Merger';
+import { Merger } from '../merger/Merger';
 import * as fs from 'fs';
 import jsonFormatter from '../formatter/formatJson';
 

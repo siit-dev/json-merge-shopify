@@ -4,7 +4,6 @@ export interface MergerConstructorOptions {
   ancestor: any;
   filename?: string;
   preferred?: PreferredSide;
-  objectIdentifier?: ObjectIdentifierFunction;
 }
 export type ObjectIdentifierFunction = (
   obj: Object,
@@ -20,7 +19,6 @@ export class Merger {
   ancestor: any;
   filename?: string | null;
   preferred?: PreferredSide;
-  objectIdentifier?: ObjectIdentifierFunction;
   _hasConflicts: boolean = false;
 
   constructor({
@@ -29,15 +27,12 @@ export class Merger {
     ancestor,
     filename,
     preferred,
-    objectIdentifier,
   }: MergerConstructorOptions) {
     this.ours = ours;
     this.theirs = theirs;
     this.ancestor = ancestor;
     this.filename = filename || null;
     this.preferred = preferred || 'theirs';
-    this.objectIdentifier =
-      objectIdentifier || this.defaultObjectIdentifier.bind(this);
   }
 
   /**
