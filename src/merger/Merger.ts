@@ -7,11 +7,6 @@ export interface MergerConstructorOptions {
   filename?: string;
   preferred?: PreferredSide;
 }
-export type ObjectIdentifierFunction = (
-  obj: Object,
-  path: Path,
-  filename: string | null,
-) => string | string[] | null;
 export type PreferredSide = 'ours' | 'theirs' | null;
 export type Path = string[];
 
