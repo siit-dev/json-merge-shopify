@@ -1,3 +1,5 @@
+import ArrayMerger from './ArrayMerger';
+
 export interface MergerConstructorOptions {
   ours: any;
   theirs: any;
@@ -78,11 +80,7 @@ export class Merger {
       keys[key] = true;
     }
 
-    console.log({ keys });
-
     for (let key in keys) {
-      console.log({ key });
-
       // Get the values at the current key
       const ancestorValue = ancestorNode?.[key];
       const ancestorValueExists = ancestorNode?.hasOwnProperty(key);
@@ -94,19 +92,11 @@ export class Merger {
 
       // If there's no conflict, just take the value
       if (ourValue === theirValue) {
-        console.log('Our value matches their value', ourValue);
         continue;
       }
 
       // Handle the case where one side or the other is missing the key
       if (ourValueExists != theirValueExists) {
-        console.log(
-          'One side is missing the key',
-          key,
-          ourValue,
-          theirValue,
-          ancestorValue,
-        );
         if (!ancestorValueExists) {
           // If it's a new value coming from their branch, take theirs
           // Otherwise, keep ours.
@@ -126,23 +116,11 @@ export class Merger {
 
       // if theirs matches the ancestor, go with ours
       if (JSON.stringify(theirValue) === JSON.stringify(ancestorValue)) {
-        console.log(
-          'Their value matches ancestor',
-          ourValue,
-          theirValue,
-          ancestorValue,
-        );
         // No action needed in this case
         continue;
       }
 
       if (JSON.stringify(ourValue) === JSON.stringify(ancestorValue)) {
-        console.log(
-          'Our value matches ancestor',
-          ourValue,
-          theirValue,
-          ancestorValue,
-        );
         // We write the value to ourNode since we're going to overwrite
         // our version with the merged version
         ourNode[key] = theirValue;
@@ -190,14 +168,6 @@ export class Merger {
         typeof ourValue === 'object' &&
         typeof theirValue === 'object'
       ) {
-        console.log(
-          'Recursively merging objects',
-          key,
-          ourValue,
-          theirValue,
-          ancestorValue,
-        );
-
         // If both sides have a non-null object value, we recurse
         this.mergeObject(ancestorValue, ourValue, theirValue, subPath);
         continue;
@@ -206,34 +176,13 @@ export class Merger {
       // If we get here, we have a conflict at this key
       // In this case, we take the value from the preferred branch.
       if (this.preferred === 'ours') {
-        console.log(
-          'Taking our value',
-          key,
-          ourValue,
-          theirValue,
-          ancestorValue,
-        );
         continue;
       } else if (this.preferred === 'theirs') {
-        console.log(
-          'Taking their value',
-          key,
-          ourValue,
-          theirValue,
-          ancestorValue,
-        );
         ourNode[key] = theirValue;
         continue;
       }
 
       // No preferred branch was set, so we have to create a conflict.
-      console.log(
-        'Creating conflict',
-        key,
-        ourValue,
-        theirValue,
-        ancestorValue,
-      );
       ourNode[key] = this.createConflictNode(
         ancestorValue,
         ourValue,
@@ -264,17 +213,30 @@ export class Merger {
       allValues = [...new Set([...theirArray, ...ourArray])];
     }
 
-    // Merge the 3 arrays.
+    // Search for objects in the array.
+    let hasObject = false;
     for (let i = 0; i < allValues.length; i++) {
       const value = allValues[i];
-      const valueInAncestor = ancestorArray.includes(value);
-      const valueInOurs = ourArray.includes(value);
-      const valueInTheirs = theirArray.includes(value);
-
-      // We can't handle objects yet. Return a conflict.
-      // TODO: how do we handle objects?
       if (typeof value === 'object') {
-        console.log('Conflict: object in array', value, path);
+        hasObject = true;
+        break;
+      }
+    }
+
+    // If there are objects, we need to do a more complex merge.
+    if (hasObject) {
+      const arrayMerger = new ArrayMerger({
+        base: ancestorArray,
+        ours: ourArray,
+        theirs: theirArray,
+        preferred: this.preferred,
+        filename: this.filename,
+        path,
+      });
+
+      try {
+        return arrayMerger.merge();
+      } catch (e) {
         return this.createConflictNode(
           ancestorArray,
           ourArray,
@@ -282,6 +244,14 @@ export class Merger {
           path,
         );
       }
+    }
+
+    // Merge the 3 arrays.
+    for (let i = 0; i < allValues.length; i++) {
+      const value = allValues[i];
+      const valueInAncestor = ancestorArray.includes(value);
+      const valueInOurs = ourArray.includes(value);
+      const valueInTheirs = theirArray.includes(value);
 
       // If the value is in all 3 arrays, add it to the result.
       if (valueInOurs === valueInTheirs) {
@@ -295,7 +265,7 @@ export class Merger {
       }
 
       // At this point, we know the value is not in the ancestor.
-      // So these are new values. TODO: if the value is an object, then we actually need to compare the values.
+      // So these are new values.
       resultArray.push(value);
     }
 

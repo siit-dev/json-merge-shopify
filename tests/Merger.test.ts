@@ -2,7 +2,7 @@
 
 import { writeFileSync } from 'fs';
 import Merger from '../src/merger/Merger';
-import { getFixtures } from './utils/get-fixtures';
+import { getFixtures, writeFixture } from './utils/get-fixtures';
 
 it('merges objects correctly', () => {
   const { base, ours, theirs, expected } = getFixtures('merger/object');
@@ -28,14 +28,10 @@ it('merges arrays correctly', () => {
     ancestor: base,
     ours,
     theirs,
-    preferred: 'theirs',
+    preferred: 'ours',
     filename: 'settings_schema.json',
   });
   const result = merger.merge();
-  writeFileSync(
-    __dirname + '/fixtures/merger/array/result.json',
-    JSON.stringify(result, null, 2),
-  );
   const hasConflict = merger.hasConflicts();
 
   expect(result).toEqual(expected);
