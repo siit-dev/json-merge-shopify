@@ -45,7 +45,7 @@ it('identifies the same `settings_schema.json` setting', () => {
 });
 
 it('identifies an object in an array', () => {
-  const { base, ours, theirs, expected } = getFixtures('merger/array');
+  const { base, ours, theirs } = getFixtures('merger/array', null);
   const comparer = new Comparer();
   const themeInfo = base[0];
   const result = comparer.getArrayElementDiff3(themeInfo, {

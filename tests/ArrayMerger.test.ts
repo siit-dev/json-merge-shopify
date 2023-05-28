@@ -2,7 +2,7 @@ import { getFixtures } from './utils/get-fixtures';
 import ArrayMerger from '../src/merger/ArrayMerger';
 
 it('gets the possible variants for merging arrays', () => {
-  const { base, ours, theirs } = getFixtures('merger/array');
+  const { base, ours, theirs } = getFixtures('merger/array', null);
   const merger = new ArrayMerger({
     base,
     ours,
@@ -16,7 +16,7 @@ it('gets the possible variants for merging arrays', () => {
 });
 
 it('generates a possible result for merging arrays', () => {
-  const { base, ours, theirs } = getFixtures('merger/array');
+  const { base, ours, theirs } = getFixtures('merger/array', null);
   const merger = new ArrayMerger({
     base,
     ours,

@@ -21,9 +21,31 @@ it('merges objects correctly', () => {
   expect(hasConflict).toBe(false);
 });
 
-it('merges arrays correctly', () => {
-  const { base, ours, theirs, expected } = getFixtures('merger/array');
+it('merges arrays correctly (ours)', () => {
+  const { base, ours, theirs, expected } = getFixtures(
+    'merger/array',
+    'expected-ours.json',
+  );
+  const merger = new Merger({
+    ancestor: base,
+    ours,
+    theirs,
+    preferred: 'ours',
+    filename: 'settings_schema.json',
+  });
+  const result = merger.merge();
+  const hasConflict = merger.hasConflicts();
+  writeFixture(result, 'merger/array', 'result-ours.json');
 
+  expect(result).toEqual(expected);
+  expect(hasConflict).toBe(false);
+});
+
+it('merges arrays correctly (theirs)', () => {
+  const { base, ours, theirs, expected } = getFixtures(
+    'merger/array',
+    'expected-theirs.json',
+  );
   const merger = new Merger({
     ancestor: base,
     ours,
@@ -33,7 +55,7 @@ it('merges arrays correctly', () => {
   });
   const result = merger.merge();
   const hasConflict = merger.hasConflicts();
-  writeFixture(result, 'merger/array', 'result.json');
+  writeFixture(result, 'merger/array', 'result-theirs.json');
 
   expect(result).toEqual(expected);
   expect(hasConflict).toBe(false);

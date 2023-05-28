@@ -10,12 +10,15 @@ export const getFixture = (folder: string, file: string, parseJson = true) => {
   return parseJson ? JSON.parse(source) : source;
 };
 
-export const getFixtures = (folder: string) => {
+export const getFixtures = (
+  folder: string,
+  expectedFilename: string | null = 'expected.json',
+) => {
   return {
     base: getFixture(folder, 'base.json'),
     ours: getFixture(folder, 'ours.json'),
     theirs: getFixture(folder, 'theirs.json'),
-    expected: getFixture(folder, 'expected.json'),
+    expected: expectedFilename ? getFixture(folder, expectedFilename) : null,
   };
 };
 
