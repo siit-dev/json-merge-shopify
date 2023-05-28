@@ -13,6 +13,14 @@ export type ObjectIdentifierFunction = (
 export type PreferredSide = 'ours' | 'theirs' | null;
 export type Path = string[];
 
+export interface ConflictNode {
+  CONFLICT: '<<<<<<<<>>>>>>>>';
+  OURS: any;
+  THEIRS: any;
+  ANCESTOR: any;
+  PATH: string;
+}
+
 export class Merger {
   ours: any;
   theirs: any;
@@ -60,7 +68,7 @@ export class Merger {
     ourNode: any,
     theirNode: any,
     path: Path = [],
-  ) {
+  ): Object | ConflictNode {
     // Create a set of all the keys present in either our node or their node
     const keys: Record<string, true> = {};
     for (let key in ourNode) {
@@ -245,7 +253,7 @@ export class Merger {
     ourArray: Array<any>,
     theirArray: Array<any>,
     path: Path = [],
-  ) {
+  ): Array<any> | ConflictNode {
     let resultArray = [];
 
     // If the value is in the ancestor, but not in any of ours/theirs, it is removed.
@@ -317,10 +325,6 @@ export class Merger {
     return resultArray;
   }
 
-  defaultObjectIdentifier(obj: Object): string[] {
-    return ['id', 'name'];
-  }
-
   /**
    * Generate a node to indicate a conflict
    * We include `<<<<<<<<>>>>>>>>` so that developers used to searching for <<<<
@@ -331,7 +335,7 @@ export class Merger {
     ourValue: any,
     theirValue: any,
     path: Path,
-  ) {
+  ): ConflictNode {
     this._hasConflicts = true;
     return {
       CONFLICT: '<<<<<<<<>>>>>>>>',

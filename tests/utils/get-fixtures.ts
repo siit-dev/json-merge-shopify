@@ -18,3 +18,16 @@ export const getFixtures = (folder: string) => {
     expected: getFixture(folder, 'expected.json'),
   };
 };
+
+export const writeFixture = (
+  content: any,
+  folder: string,
+  file: string,
+  stringifyJson = true,
+) => {
+  const currentFolder = path.dirname(__dirname);
+  fs.writeFileSync(
+    `${currentFolder}/fixtures/${folder}/${file}`,
+    stringifyJson ? JSON.stringify(content, null, 2) : content.toString(),
+  );
+};

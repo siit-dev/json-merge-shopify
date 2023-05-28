@@ -4,7 +4,7 @@ import { writeFileSync } from 'fs';
 import Merger from '../src/merger/Merger';
 import { getFixtures } from './utils/get-fixtures';
 
-it.skip('merges objects correctly', () => {
+it('merges objects correctly', () => {
   const { base, ours, theirs, expected } = getFixtures('merger/object');
 
   const merger = new Merger({
@@ -21,7 +21,7 @@ it.skip('merges objects correctly', () => {
   expect(hasConflict).toBe(false);
 });
 
-it.skip('merges arrays correctly', () => {
+it('merges arrays correctly', () => {
   const { base, ours, theirs, expected } = getFixtures('merger/array');
 
   const merger = new Merger({
