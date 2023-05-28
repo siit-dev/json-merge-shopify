@@ -109,7 +109,6 @@ it('identifies an object in an array', () => {
     theirs,
     ours,
   });
-  console.log(result5);
   expect(result5.basePosition).toBe(6);
   expect(result5.oursPosition).toBe(5);
   expect(result5.theirsPosition).toBeInstanceOf(Array);

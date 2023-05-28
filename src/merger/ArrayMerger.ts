@@ -4,7 +4,7 @@ export interface ArrayMergerOptions {
   base: any[];
   ours: any[];
   theirs: any[];
-  preferred?: string | null;
+  preferred?: SourceType | null;
   filename?: string | null;
   path?: string[];
 }
@@ -12,7 +12,7 @@ export interface ArrayMergerOptions {
 export interface ArrayMergerVariant {
   seemsValid: boolean;
   positions: Array<{
-    object: any;
+    unionPosition: number;
     basePosition: number | null;
     oursPosition: number | null;
     theirsPosition: number | null;
@@ -32,7 +32,7 @@ export class ArrayMerger {
   theirs: any[];
   base: any[];
   union: any[];
-  preferred: string | null;
+  preferred: SourceType;
   filename: string | null;
   path: string[] | null;
   variants: ArrayMergerVariant[] | null = null;
@@ -182,7 +182,6 @@ export class ArrayMerger {
       'theirs',
       currentVariants,
     );
-    console.log({ object, basePositions, oursPositions, theirsPositions });
 
     basePositions.forEach((basePosition) => {
       oursPositions.forEach((oursPosition) => {
@@ -213,7 +212,6 @@ export class ArrayMerger {
             seemsValid: true,
             positions: [
               {
-                object,
                 unionPosition: unionIndex,
                 basePosition: basePositionIndex,
                 oursPosition: oursPositionIndex,
@@ -262,6 +260,7 @@ export class ArrayMerger {
   generateFromVariant(variant: ArrayMergerVariant): any[] {
     const positions = variant.positions;
     const result: any[] = [];
+
     positions.forEach((position) => {
       // Deleted object.
       if (
@@ -294,9 +293,25 @@ export class ArrayMerger {
           this.ours[position.oursPosition],
         );
       } else {
-        object = position.object;
+        object = this.union[position.unionPosition];
       }
       result.push(object);
+    });
+
+    // Add objects that are missing from the variant.
+    const sources: Array<'ours' | 'theirs'> =
+      this.preferred === 'ours' ? ['ours', 'theirs'] : ['theirs', 'ours'];
+    sources.forEach((source: 'ours' | 'theirs') => {
+      const handledIndexes: number[] = positions
+        .map((position) => {
+          return position[`${source}Position`]!;
+        })
+        .filter((position) => position !== null);
+      for (let i = 0; i < this[source].length; i++) {
+        if (!handledIndexes.includes(i)) {
+          result.push(this[source][i]);
+        }
+      }
     });
 
     return result;
@@ -348,9 +363,6 @@ export class ArrayMerger {
     if (!bestVariant) {
       throw new Error('No valid variant found.');
     }
-
-    console.log(variants.length);
-    console.log(JSON.stringify(bestVariant, null, 2));
 
     const result = this.generateFromVariant(bestVariant);
     return result;

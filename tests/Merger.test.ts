@@ -28,11 +28,12 @@ it('merges arrays correctly', () => {
     ancestor: base,
     ours,
     theirs,
-    preferred: 'ours',
+    preferred: 'theirs',
     filename: 'settings_schema.json',
   });
   const result = merger.merge();
   const hasConflict = merger.hasConflicts();
+  writeFixture(result, 'merger/array', 'result.json');
 
   expect(result).toEqual(expected);
   expect(hasConflict).toBe(false);
