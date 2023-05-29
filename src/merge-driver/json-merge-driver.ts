@@ -59,12 +59,7 @@ const merged = merger.merge();
  *
  * We use the custom Shopify json formatter to format the json.
  */
-fs.writeFileSync(
-  theirsPath.replace('.json', '.resolved.json'),
-  jsonFormatter(merged, {
-    doubleEscape: false,
-  }),
-);
+fs.writeFileSync(theirsPath, jsonFormatter(merged));
 
 console.error(
   'Have there been conflicts?',
