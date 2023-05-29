@@ -9,7 +9,10 @@ export interface FormatterOptions {
 /**
  * Format JSONs similarly to how Shopify does it.
  */
-export const formatJson = (source: string, options: FormatterOptions = {}): string => {
+export const formatJson = (
+  source: string,
+  options: FormatterOptions = {},
+): string => {
   const defaultOptions: FormatterOptions = {
     doubleEscape: true,
     fixEmptyObjects: true,
@@ -33,7 +36,10 @@ export const formatJson = (source: string, options: FormatterOptions = {}): stri
       }
       return value;
     };
-    formatted = JSON.stringify(source, replacer, options.tabSize).replaceAll(`\\\\=-=-=\\\\`, '\\');
+    formatted = JSON.stringify(source, replacer, options.tabSize).replaceAll(
+      `\\\\=-=-=\\\\`,
+      '\\',
+    );
   } else {
     formatted = JSON.stringify(source, null, options.tabSize);
   }
