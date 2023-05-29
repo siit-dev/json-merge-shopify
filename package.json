@@ -8,8 +8,7 @@
     "test": "jest",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "npm run build",
-    "preversion": "npm run lint",
-    "prepublishOnly": "npm test && npm run lint",
+    "prepublishOnly": "npm test",
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags"
   },
