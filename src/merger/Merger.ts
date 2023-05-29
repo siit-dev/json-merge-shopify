@@ -10,8 +10,10 @@ export interface MergerConstructorOptions {
 export type PreferredSide = 'ours' | 'theirs' | null;
 export type Path = string[];
 
+const ConflictSeparator = '<<<<<<<<>>>>>>>>' as const;
+
 export interface ConflictNode {
-  CONFLICT: '<<<<<<<<>>>>>>>>';
+  CONFLICT: typeof ConflictSeparator;
   OURS: any;
   THEIRS: any;
   ANCESTOR: any;
@@ -303,7 +305,7 @@ export class Merger {
   ): ConflictNode {
     this._hasConflicts = true;
     return {
-      CONFLICT: '<<<<<<<<>>>>>>>>',
+      CONFLICT: ConflictSeparator,
       OURS: ourValue != null ? ourValue : null,
       THEIRS: theirValue != null ? theirValue : null,
       ANCESTOR: ancestorValue != null ? ancestorValue : null,

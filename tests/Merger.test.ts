@@ -4,7 +4,7 @@ import { writeFileSync } from 'fs';
 import Merger from '../src/merger/Merger';
 import { getFixtures, writeFixture } from './utils/get-fixtures';
 
-it('merges objects correctly', () => {
+it('merges objects correctly (settings_data.json)', () => {
   const { base, ours, theirs, expected } = getFixtures('merger/object');
 
   const merger = new Merger({
