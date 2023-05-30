@@ -65,6 +65,7 @@
   },
   "dependencies": {
     "app-root-path": "^3.1.0",
+    "chalk": "^4.1.2",
     "glob": "^10.2.6",
     "js-levenshtein": "^1.1.6",
     "simple-git": "^3.19.0"
