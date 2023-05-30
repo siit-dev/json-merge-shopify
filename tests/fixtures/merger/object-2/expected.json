@@ -1,0 +1,320 @@
+{
+  "sections": {
+    "163637577267cbfc2c": {
+      "type": "homepage-banner",
+      "blocks": {
+        "163637577267cbfc2c-0": {
+          "type": "heading",
+          "settings": {
+            "hp_image": "shopify:\/\/shop_images\/pexels-monstera-6238119_2x_03af5a21-4c28-4531-8b9c-576b28f98c0f.jpg",
+            "hp_image_mobile": "shopify:\/\/shop_images\/irene-kredenets-sBtP4d_YRqo-unsplash_2x_c4e45723-e7f8-41b6-8f10-ccc7e5ae6e5a.jpg",
+            "hp_title": "Préparez votre organisme au changement de saison!",
+            "hp_subtitle": "<p>La gamme Vivalessence® est à base d’huiles essentielles bio et d’extraits fluides de plantes!!!<\/p>",
+            "hp_button_label": "DÉCOUVRIR LES PRODUITS",
+            "hp_button_link": "shopify:\/\/pages\/nos-conseils",
+            "text_color": "#2e1e1e"
+          }
+        },
+        "a81d4e0c-6e84-41d4-a440-d85b20cd5d8f": {
+          "type": "heading",
+          "settings": {
+            "hp_image": "shopify:\/\/shop_images\/handful-of-acorns.jpg",
+            "hp_title": "Le laboratoire Motima",
+            "hp_subtitle": "<p>Créé en 1993, le Laboratoire Motima est spécialisé dans la conception et la distribution de compléments nutritionnels et topiques d’origine naturelle.<\/p>",
+            "hp_button_label": "DÉCOUVRIR LE LABORATOIRE",
+            "hp_button_link": "shopify:\/\/pages\/notre-laboratoire",
+            "text_color": "#1e262e"
+          }
+        }
+      },
+      "block_order": [
+        "163637577267cbfc2c-0",
+        "a81d4e0c-6e84-41d4-a440-d85b20cd5d8f"
+      ],
+      "settings": {
+      }
+    },
+    "6be4dbe4-8e44-45ba-978f-c3939e257920": {
+      "type": "homepage-full-banner",
+      "blocks": {
+        "template--18460854812958__6be4dbe4-8e44-45ba-978f-c3939e257920-1681120760e68db0f4-0": {
+          "type": "heading",
+          "settings": {
+            "hp_image": "shopify:\/\/shop_images\/handful-of-acorns.jpg",
+            "hp_image_mobile": "shopify:\/\/shop_images\/fleur-kaan-w4Dj3MshHQ0-unsplash_2x_79d1dff7-037b-4155-863c-b91e77ad54e0.jpg",
+            "hp_title": "Le laboratoire Motima",
+            "hp_subtitle": "<p>Créé en 1993, le Laboratoire Motima est spécialisé dans la conception et la distribution de compléments nutritionnels et topiques d’origine naturelle.<\/p>",
+            "hp_button_label": "DÉCOUVRIR LE LABORATOIRE",
+            "hp_button_link": "shopify:\/\/pages\/nos-produits",
+            "text_color": "#ffffff"
+          }
+        },
+        "3c3dfaa1-7a66-475c-b19a-eeafbd5b0de3": {
+          "type": "heading",
+          "settings": {
+            "hp_image": "shopify:\/\/shop_images\/pexels-monstera-6238119_2x_03af5a21-4c28-4531-8b9c-576b28f98c0f.jpg",
+            "hp_title": "Le laboratoire Motima1",
+            "hp_subtitle": "<p>Créé en 1993, le Laboratoire Motima est spécialisé dans la conception et la distribution de compléments nutritionnels et topiques d’origine naturelle.<\/p>",
+            "hp_button_label": "En savoir plus",
+            "hp_button_link": "shopify:\/\/pages\/nos-offres",
+            "text_color": "#ffffff"
+          }
+        }
+      },
+      "block_order": [
+        "template--18460854812958__6be4dbe4-8e44-45ba-978f-c3939e257920-1681120760e68db0f4-0",
+        "3c3dfaa1-7a66-475c-b19a-eeafbd5b0de3"
+      ],
+      "settings": {
+      }
+    },
+    "1a99047a-9366-4809-b1df-cdb03b22647d": {
+      "type": "home__product-selection",
+      "blocks": {
+        "template--18460854812958__1a99047a-9366-4809-b1df-cdb03b22647d-1683192057014d83ad-0": {
+          "type": "featured_product",
+          "settings": {
+            "product": "bprev-90-comprimes"
+          }
+        },
+        "94f09365-a8b7-4075-9b59-bdea65dabc4f": {
+          "type": "featured_product",
+          "settings": {
+            "product": "dysto-m-60-gelules-endormissement-decalage-horaire"
+          }
+        },
+        "34a88ed1-e6ed-43ad-811e-acd8c747864a": {
+          "type": "featured_product",
+          "settings": {
+            "product": "bprev-90-comprimes"
+          }
+        },
+        "2e75bc8c-7224-4d3b-99d7-837a13ced4e2": {
+          "type": "featured_product",
+          "settings": {
+            "product": "hepastim-favorise-un-bon-fonctionnement-hepatique"
+          }
+        }
+      },
+      "block_order": [
+        "template--18460854812958__1a99047a-9366-4809-b1df-cdb03b22647d-1683192057014d83ad-0",
+        "94f09365-a8b7-4075-9b59-bdea65dabc4f",
+        "34a88ed1-e6ed-43ad-811e-acd8c747864a",
+        "2e75bc8c-7224-4d3b-99d7-837a13ced4e2"
+      ],
+      "settings": {
+        "title": "Des produits adaptés à vos besoins",
+        "button_label": "Découvrir tous nos produits",
+        "button_link": "shopify:\/\/collections\/all"
+      }
+    },
+    "163637763418976e91": {
+      "type": "linked-page",
+      "blocks": {
+        "f5b4ff55-61a7-449e-b95f-c8d5ab1e49f1": {
+          "type": "regular_collection",
+          "settings": {
+            "collection": "digestion"
+          }
+        },
+        "40663f37-e42e-467c-a95d-2159c1d66758": {
+          "type": "regular_collection",
+          "settings": {
+            "collection": "nos-cures"
+          }
+        },
+        "553d1b87-8582-4367-aaef-a3fa276fde12": {
+          "type": "regular_collection",
+          "settings": {
+            "collection": "nos-produits"
+          }
+        },
+        "6c41c706-17ca-4af4-990e-ab007cf86b72": {
+          "type": "regular_collection",
+          "settings": {
+            "collection": "sommeil"
+          }
+        },
+        "8ad4c298-44f4-4bb7-940d-abc4aa564029": {
+          "type": "regular_collection",
+          "settings": {
+            "collection": "lequilibre-au-feminin"
+          }
+        }
+      },
+      "block_order": [
+        "f5b4ff55-61a7-449e-b95f-c8d5ab1e49f1",
+        "40663f37-e42e-467c-a95d-2159c1d66758",
+        "553d1b87-8582-4367-aaef-a3fa276fde12",
+        "6c41c706-17ca-4af4-990e-ab007cf86b72",
+        "8ad4c298-44f4-4bb7-940d-abc4aa564029"
+      ],
+      "settings": {
+        "title": "<p>TROUVEZ VOS<strong> PRODUITS<\/strong> EN FONCTION DE VOS <strong>BESOINS<\/strong><\/p>"
+      }
+    },
+    "d339253b-6159-41e1-86ed-0da61946a4ce": {
+      "type": "edito-section",
+      "settings": {
+        "edito_image": "shopify:\/\/shop_images\/Image-Home_About.png",
+        "edito_image_mobile": "shopify:\/\/shop_images\/Image-Home_About-Mobile.png",
+        "edito_subtitle": "À PROPOS",
+        "edito_title": "Motima, le spécialiste des compléments alimentaires naturels.",
+        "edito_descr": "<p>Les compléments alimentaires Motima garantissent des produits 100 % naturels élaborés à partir de substances d’origine naturelle sélectionnées sur des bases scientifiques rigoureuses.<\/p>",
+        "edito_button_label": "En savoir plus",
+        "edito_button_link": "shopify:\/\/pages\/notre-histoire"
+      }
+    },
+    "9d4e17df-74db-4227-b7a9-46c6f82f6e58": {
+      "type": "custom-content",
+      "blocks": {
+        "40560500-90d7-42a3-9b1a-931f428e1f4d": {
+          "type": "custom-content",
+          "settings": {
+            "page_link": "",
+            "page_image": "shopify:\/\/shop_images\/Image_1.svg",
+            "page_heading": "NOTRE HISTOIRE"
+          }
+        },
+        "a1ec15ff-f2c2-42f6-84f8-bb908bbf5c5d": {
+          "type": "custom-content",
+          "settings": {
+            "page_link": "shopify:\/\/pages\/nos-conseils",
+            "page_image": "shopify:\/\/shop_images\/Image_2_1.svg",
+            "page_heading": "NOS ENGAGEMENTS"
+          }
+        },
+        "0210aa79-7d71-46c6-99fb-0334eb9cbf32": {
+          "type": "custom-content",
+          "settings": {
+            "page_link": "",
+            "page_image": "shopify:\/\/shop_images\/Image_3_1.svg",
+            "page_heading": "NOTRE PRODUCTION"
+          }
+        }
+      },
+      "block_order": [
+        "40560500-90d7-42a3-9b1a-931f428e1f4d",
+        "a1ec15ff-f2c2-42f6-84f8-bb908bbf5c5d",
+        "0210aa79-7d71-46c6-99fb-0334eb9cbf32"
+      ],
+      "settings": {
+      }
+    },
+    "c2c0f2f9-255f-44d4-b498-ed0b99227647": {
+      "type": "reviews-section",
+      "blocks": {
+        "template--18460854812958__c2c0f2f9-255f-44d4-b498-ed0b99227647-16819856688104175f-0": {
+          "type": "heading",
+          "settings": {
+            "reviews-stars": "4",
+            "review_descr": "<p>Une belle découverte, les cures sont très efficaces et 100% naturelles, et ça j’adore ! Merci au service client très à l’écoute.<\/p>",
+            "review_name": "LAURÈNE P"
+          }
+        },
+        "fead8207-5d84-4c58-8c5d-0e238e5ca818": {
+          "type": "heading",
+          "settings": {
+            "reviews-stars": "1",
+            "review_descr": "<p>Les compléments alimentaires Motima garantissent des produits 100 % naturels élaborés à partir de substances d’origine naturelle sélectionnées sur des bases scientifiques rigoureuses.<\/p>",
+            "review_name": "Marina Motima Lorem"
+          }
+        },
+        "0c20dc0e-be14-4f10-a9ea-c435b2c644ec": {
+          "type": "heading",
+          "settings": {
+            "reviews-stars": "3",
+            "review_descr": "<p>Du mieux depuis que je prends ce produit, moins de douleur. Cela fait 4 mois que j’ai commencé le traitement<\/p>",
+            "review_name": "Diana L"
+          }
+        },
+        "1fb5c29c-2398-4a90-83a0-dee9e8523b75": {
+          "type": "heading",
+          "settings": {
+            "reviews-stars": "5",
+            "review_descr": "<p>Produit parfait je le recommande aux personnes souffrant d’insuffisance veineuse.<\/p>",
+            "review_name": "Marie-Pierre Dumas"
+          }
+        }
+      },
+      "block_order": [
+        "template--18460854812958__c2c0f2f9-255f-44d4-b498-ed0b99227647-16819856688104175f-0",
+        "fead8207-5d84-4c58-8c5d-0e238e5ca818",
+        "0c20dc0e-be14-4f10-a9ea-c435b2c644ec",
+        "1fb5c29c-2398-4a90-83a0-dee9e8523b75"
+      ],
+      "settings": {
+        "review_title": "LES CLIENT.E.S EN PARLENT",
+        "review_image": "shopify:\/\/shop_images\/Image_Manifeste.png"
+      }
+    },
+    "163637862191175e0a": {
+      "type": "instagram-section",
+      "blocks": {
+        "163637862191175e0a-0": {
+          "type": "instagram_section",
+          "settings": {
+            "instagram_image": "shopify:\/\/shop_images\/pexels-ketut-subiyanto-4473877_2x_628e44b0-a73f-47d7-b2d1-83e3d13dd4b6.jpg",
+            "instagram_link": "https:\/\/www.instagram.com\/p\/B-pGHo_qV_c\/"
+          }
+        },
+        "984543a3-c1be-4485-a67a-23302025e6af": {
+          "type": "instagram_section",
+          "settings": {
+            "instagram_image": "shopify:\/\/shop_images\/clay-banks-8SXaMMWCTGc-unsplash_2x_e1b0d4fc-434c-4af1-9a3e-5b702ca200cd.jpg",
+            "instagram_link": "https:\/\/www.instagram.com\/p\/B-9wPQGqnYx\/"
+          }
+        },
+        "fe028a33-7d11-4acd-9e31-8c5bbfd7f33e": {
+          "type": "instagram_section",
+          "settings": {
+            "instagram_image": "shopify:\/\/shop_images\/pexels-sora-shimazaki-5938539_2x_b22b190d-5662-4077-98e9-b137a07c8c57.jpg",
+            "instagram_link": "https:\/\/www.instagram.com\/p\/CON0Kkxla3D\/"
+          }
+        },
+        "26506950-e72b-4689-a3e9-e794f60fa38a": {
+          "type": "instagram_section",
+          "settings": {
+            "instagram_image": "shopify:\/\/shop_images\/pexels-geraud-pfeiffer-6542753_2x_dd219b0c-8def-4c39-8056-82e09e9e6735.jpg",
+            "instagram_link": "https:\/\/www.instagram.com\/p\/CNIWbSyl-TL\/"
+          }
+        },
+        "bfff57bc-6216-4c2a-9b7f-d13d5d392f9e": {
+          "type": "instagram_section",
+          "settings": {
+            "instagram_image": "shopify:\/\/shop_images\/irene-kredenets-sBtP4d_YRqo-unsplash_2x_c4e45723-e7f8-41b6-8f10-ccc7e5ae6e5a.jpg",
+            "instagram_link": "https:\/\/www.instagram.com\/p\/CN-WA7PFwVl\/"
+          }
+        },
+        "e94af1d2-90e1-4a4d-853b-f27d736e1421": {
+          "type": "instagram_section",
+          "settings": {
+            "instagram_image": "shopify:\/\/shop_images\/madison-lavern-4gcqRf3-f2I-unsplash_2x_576cfd69-72af-4abd-958a-161c0e8e742a.jpg",
+            "instagram_link": ""
+          }
+        }
+      },
+      "block_order": [
+        "163637862191175e0a-0",
+        "984543a3-c1be-4485-a67a-23302025e6af",
+        "fe028a33-7d11-4acd-9e31-8c5bbfd7f33e",
+        "26506950-e72b-4689-a3e9-e794f60fa38a",
+        "bfff57bc-6216-4c2a-9b7f-d13d5d392f9e",
+        "e94af1d2-90e1-4a4d-853b-f27d736e1421"
+      ],
+      "settings": {
+        "title": "<p>SUIVEZ <a href=\"https:\/\/www.instagram.com\/motima\/\" target=\"_blank\" title=\"https:\/\/www.instagram.com\/motima\/\">@MOTIMA<\/a> SUR INSTAGRAM<\/p>"
+      }
+    }
+  },
+  "order": [
+    "163637577267cbfc2c",
+    "6be4dbe4-8e44-45ba-978f-c3939e257920",
+    "1a99047a-9366-4809-b1df-cdb03b22647d",
+    "163637763418976e91",
+    "d339253b-6159-41e1-86ed-0da61946a4ce",
+    "9d4e17df-74db-4227-b7a9-46c6f82f6e58",
+    "c2c0f2f9-255f-44d4-b498-ed0b99227647",
+    "163637862191175e0a"
+  ]
+}

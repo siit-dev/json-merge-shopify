@@ -21,7 +21,8 @@
     "./src/": "./src/",
     "./formatter": "./lib/formatter/formatter.js",
     "./format-json": "./lib/formatter/format-json.js",
-    "./merge-driver": "./lib/merge-driver/merge-driver.js"
+    "./merge-driver": "./lib/merge-driver/merge-driver.js",
+    "./git-merger": "./lib/git-integration/git-merger.js"
   },
   "directories": {
     "lib": "lib"
@@ -63,7 +64,12 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
+    "app-root-path": "^3.1.0",
     "glob": "^10.2.6",
-    "js-levenshtein": "^1.1.6"
+    "js-levenshtein": "^1.1.6",
+    "simple-git": "^3.19.0"
+  },
+  "peerDependencies": {
+    "prettier": "*"
   }
 }

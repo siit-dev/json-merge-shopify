@@ -21,6 +21,23 @@ it('merges objects correctly (settings_data.json)', () => {
   expect(hasConflict).toBe(false);
 });
 
+it('merges objects correctly (object-2)', () => {
+  const { base, ours, theirs, expected } = getFixtures('merger/object-2');
+
+  const merger = new Merger({
+    ancestor: base,
+    ours,
+    theirs,
+    preferred: 'theirs',
+    filename: 'index.json',
+  });
+  const result = merger.merge();
+  const hasConflict = merger.hasConflicts();
+
+  expect(result).toEqual(expected);
+  expect(hasConflict).toBe(false);
+});
+
 it('merges arrays correctly (ours)', () => {
   const { base, ours, theirs, expected } = getFixtures(
     'merger/array',
