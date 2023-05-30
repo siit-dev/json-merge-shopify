@@ -21,6 +21,7 @@ export interface GitMergerOptions {
   formatter?: ((json: string, path: string) => string) | null;
   commitMessage?: string;
   preferred?: 'ours' | 'theirs' | null;
+  exitIfNoExistingDeployment?: boolean;
 }
 
 export class GitMerger {
@@ -36,6 +37,7 @@ export class GitMerger {
   formatter: (json: string, path: string) => string;
   commitMessage: string;
   preferred: 'ours' | 'theirs';
+  exitIfNoExistingDeployment: boolean;
 
   constructor({
     jsonPaths = ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
@@ -46,8 +48,9 @@ export class GitMerger {
     productionBranch = 'production',
     preferred = 'theirs',
     checkJsonValidity = true,
-    commitMessage = `[AUTOMATED] Update JSON files from #liveMirror# branch: #files#}`,
+    commitMessage = '[AUTOMATED] Update JSON files from `#liveMirror#` branch: #files#',
     formatter = null,
+    exitIfNoExistingDeployment = true,
   }: GitMergerOptions) {
     // Get the git root as the node module root
     const projectRoot = appRoot.toString();
@@ -60,6 +63,7 @@ export class GitMerger {
     this.checkJsonValidity = checkJsonValidity;
     this.commitMessage = commitMessage;
     this.preferred = preferred || 'theirs';
+    this.exitIfNoExistingDeployment = exitIfNoExistingDeployment;
 
     if (formatter) {
       this.formatter = formatter;
@@ -247,6 +251,14 @@ export class GitMerger {
             ])
           )?.latest
         : null;
+
+      // If no deployment has been done yet, we should not merge. We should simply exit clean.
+      if (!lastDeploy && this.exitIfNoExistingDeployment) {
+        await this.logWarning(
+          `No deployment has been done yet. No need to merge.`,
+        );
+        process.exit(0);
+      }
 
       let theirs = isArray ? [] : {};
       try {
