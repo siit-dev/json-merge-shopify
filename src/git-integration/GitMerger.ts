@@ -7,6 +7,7 @@ import prettier from 'prettier';
 import appRoot from 'app-root-path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import chalk from 'chalk';
 const execAsync = promisify(exec);
 
 export interface GitMergerOptions {
@@ -362,26 +363,20 @@ export class GitMerger {
     }
   }
 
-  async chalk() {
-    if (this.chalkInstance) return this.chalkInstance;
-    this.chalkInstance = (await import('chalk')).default;
-    return this.chalkInstance;
-  }
-
   async logInfo(message: string) {
-    console.log((await this.chalk()).blue(message));
+    console.log(chalk.blue(message));
   }
 
   async logWarning(message: string) {
-    console.warn((await this.chalk()).yellow(message));
+    console.warn(chalk.yellow(message));
   }
 
   async logError(message: string) {
-    console.error((await this.chalk()).red(message));
+    console.error(chalk.red(message));
   }
 
   async logSuccess(message: string) {
-    console.error((await this.chalk()).green(message));
+    console.error(chalk.green(message));
   }
 }
 
