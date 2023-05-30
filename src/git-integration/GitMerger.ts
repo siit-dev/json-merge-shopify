@@ -16,9 +16,11 @@ export interface GitMergerOptions {
   createCommit?: boolean;
   mainBranch?: string;
   liveMirrorBranch?: string;
+  productionBranch?: string | null;
   checkJsonValidity?: boolean;
   formatter?: ((json: string, path: string) => string) | null;
   commitMessage?: string;
+  preferred?: 'ours' | 'theirs' | null;
 }
 
 export class GitMerger {
@@ -28,10 +30,12 @@ export class GitMerger {
   git: any = null;
   createCommit: boolean;
   mainBranch: string;
+  productionBranch: string | null;
   liveMirrorBranch: string;
   checkJsonValidity: boolean;
   formatter: (json: string, path: string) => string;
   commitMessage: string;
+  preferred: 'ours' | 'theirs';
 
   constructor({
     jsonPaths = ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
@@ -39,6 +43,8 @@ export class GitMerger {
     createCommit = false,
     mainBranch = 'main',
     liveMirrorBranch = 'live-mirror',
+    productionBranch = 'production',
+    preferred = 'theirs',
     checkJsonValidity = true,
     commitMessage = `[AUTOMATED] Update JSON files from #liveMirror# branch: #files#}`,
     formatter = null,
@@ -50,8 +56,10 @@ export class GitMerger {
     this.createCommit = createCommit;
     this.mainBranch = mainBranch;
     this.liveMirrorBranch = liveMirrorBranch;
+    this.productionBranch = productionBranch;
     this.checkJsonValidity = checkJsonValidity;
     this.commitMessage = commitMessage;
+    this.preferred = preferred || 'theirs';
 
     if (formatter) {
       this.formatter = formatter;
@@ -138,12 +146,12 @@ export class GitMerger {
 
     // 1b. Create a new local "live-mirror" branch from the remote "live-mirror" branch
     await this.logInfo(
-      'Creating new local "live-mirror" branch from the remote "live-mirror" branch',
+      `Creating new local "${this.liveMirrorBranch}" branch from the remote "${this.liveMirrorBranch}" branch`,
     );
     await this.git.checkout([
       '-b',
       this.liveMirrorBranch,
-      'origin/live-mirror',
+      `origin/${this.liveMirrorBranch}`,
     ]);
 
     // 1c. Get the current branch
@@ -152,9 +160,9 @@ export class GitMerger {
     // 1d. Check if the "live-mirror" branch exists
     if (currentBranch != this.liveMirrorBranch) {
       await this.logError(
-        'The "live-mirror" branch does not exist. Please create it first.',
+        `The "${this.liveMirrorBranch}" branch does not exist. Please create it first.`,
       );
-      await this.logWarning('Reverting to "main" branch');
+      await this.logWarning(`Reverting to "${this.mainBranch}" branch`);
       await this.git.checkout(this.mainBranch);
       process.exit(1);
     }
@@ -210,7 +218,9 @@ export class GitMerger {
     let hasConflict = false;
     let mergedFiles = [];
     for await (let file of allJsons) {
-      const ours = JSON.parse(await this.git.show(['main:' + file]));
+      const ours = JSON.parse(
+        await this.git.show([this.mainBranch + ':' + file]),
+      );
       const isArray = Array.isArray(ours);
 
       // Compare to the last "merge" commit, either from "main" or from "production".
@@ -220,23 +230,32 @@ export class GitMerger {
           '-n',
           '1',
           '-i',
-          '--grep=live-mirror',
+          `--grep=${this.liveMirrorBranch}`,
           '--',
           file,
         ])
       )?.latest;
-      const lastDeploy = (
-        await this.git.log(['origin/production', '-n', '1', '-i', '--', file])
-      )?.latest;
+      const lastDeploy = this.productionBranch
+        ? (
+            await this.git.log([
+              `origin/${this.productionBranch}`,
+              '-n',
+              '1',
+              '-i',
+              '--',
+              file,
+            ])
+          )?.latest
+        : null;
 
       let theirs = isArray ? [] : {};
       try {
         theirs = JSON.parse(
-          await this.git.show(['origin/live-mirror:' + file]),
+          await this.git.show([`origin/${this.liveMirrorBranch}:` + file]),
         );
       } catch (error) {
         await this.logWarning(
-          `The file ${file} does not exist in the "live-mirror" branch.`,
+          `The file ${file} does not exist in the "${this.liveMirrorBranch}" branch.`,
         );
       }
 
@@ -252,12 +271,14 @@ export class GitMerger {
           latestCommitProdTs = new Date(lastDeploy.date).getTime();
         }
         let latestCommit = this.mainBranch;
-        if (latestCommitMainTs > latestCommitProdTs) {
-          latestCommit = lastMerge.hash;
-        } else if (latestCommitProdTs > latestCommitMainTs) {
-          latestCommit = lastDeploy.hash;
-        } else {
+        if (latestCommitMainTs == 0 && latestCommitProdTs == 0) {
           latestCommit = this.mainBranch;
+        } else {
+          if (latestCommitMainTs >= latestCommitProdTs) {
+            latestCommit = lastMerge.hash;
+          } else if (latestCommitProdTs > latestCommitMainTs) {
+            latestCommit = lastDeploy.hash;
+          }
         }
 
         base = JSON.parse(await this.git.show([latestCommit + ':' + file]));
@@ -276,7 +297,7 @@ export class GitMerger {
         ancestor: base,
         ours,
         theirs,
-        preferred: 'theirs',
+        preferred: this.preferred,
         filename: file,
       });
       const merged = merger.merge();
@@ -369,11 +390,11 @@ export class GitMerger {
    * Remove the local "live-mirror" branch
    */
   async removeLiveMirrorBranch(): Promise<void> {
-    await this.logInfo('Removing local "live-mirror" branch');
+    await this.logInfo(`Removing local "${this.liveMirrorBranch}" branch`);
     try {
       await this.git.branch(['-D', this.liveMirrorBranch]);
     } catch (e) {
-      await this.logInfo('Local "live-mirror" branch not found.');
+      await this.logInfo(`Local "${this.liveMirrorBranch}" branch not found.`);
     }
   }
 
