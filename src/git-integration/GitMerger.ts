@@ -1,7 +1,7 @@
 import simpleGit from 'simple-git';
-import fs from 'fs';
+import * as fs from 'fs';
 import path from 'path';
-import glob from 'glob';
+import * as glob from 'glob';
 import { Merger } from '../merger/Merger';
 import prettier from 'prettier';
 import appRoot from 'app-root-path';
