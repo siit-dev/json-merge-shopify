@@ -1,4 +1,3 @@
-import { Chalk } from 'chalk';
 import simpleGit from 'simple-git';
 import fs from 'fs';
 import path from 'path';
@@ -22,7 +21,7 @@ export interface GitMergerOptions {
 }
 
 export class GitMerger {
-  chalkInstance: Chalk | null = null;
+  chalkInstance: any | null = null;
   gitRoot: string;
   jsonPaths: string[];
   git: any = null;
