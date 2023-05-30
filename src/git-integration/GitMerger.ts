@@ -88,8 +88,7 @@ export class GitMerger {
     await this.git.checkout(this.mainBranch);
 
     // 3b. Get the current branch
-    const currentBranch = (await this.git.branchLocal()).current;
-    await this.logInfo('Current branch: ' + currentBranch);
+    await this.checkCurrentBranch();
 
     // 4. Merge the JSON files - take the last file content from all 3 branches: main, live-mirror and production
     const { hasConflict, mergedFiles } = await this.mergeJsonFiles(allJsons);
@@ -122,16 +121,20 @@ export class GitMerger {
   }
 
   /**
+   * Check what is the current branch.
+   */
+  async checkCurrentBranch(): Promise<string> {
+    let currentBranch = (await this.git.branchLocal()).current;
+    await this.logInfo('Current branch: ' + currentBranch);
+    return currentBranch;
+  }
+
+  /**
    * Pull the latest changes from the remote "live-mirror" branch
    */
   async pullLiveMirrorBranch(): Promise<void> {
     // 1. Remove the local "live-mirror" branch, so that we can create a new one from the remote "live-mirror" branch. This will prevent merge conflicts with existing local `live-mirror` branches.
-    await this.logInfo('Removing local "live-mirror" branch');
-    try {
-      await this.git.branch(['-D', this.liveMirrorBranch]);
-    } catch (e) {
-      await this.logInfo('Local "live-mirror" branch not found.');
-    }
+    this.removeLiveMirrorBranch();
 
     // 1b. Create a new local "live-mirror" branch from the remote "live-mirror" branch
     await this.logInfo(
@@ -144,8 +147,7 @@ export class GitMerger {
     ]);
 
     // 1c. Get the current branch
-    let currentBranch = (await this.git.branchLocal()).current;
-    await this.logInfo('Current branch: ' + currentBranch);
+    let currentBranch = await this.checkCurrentBranch();
 
     // 1d. Check if the "live-mirror" branch exists
     if (currentBranch != this.liveMirrorBranch) {
@@ -360,6 +362,18 @@ export class GitMerger {
       await this.logWarning(
         'Not committing the changes (not requested to do so).',
       );
+    }
+  }
+
+  /**
+   * Remove the local "live-mirror" branch
+   */
+  async removeLiveMirrorBranch(): Promise<void> {
+    await this.logInfo('Removing local "live-mirror" branch');
+    try {
+      await this.git.branch(['-D', this.liveMirrorBranch]);
+    } catch (e) {
+      await this.logInfo('Local "live-mirror" branch not found.');
     }
   }
 
