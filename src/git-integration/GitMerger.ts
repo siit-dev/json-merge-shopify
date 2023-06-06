@@ -416,7 +416,7 @@ export class GitMerger {
       });
     } catch (e) {
       return {
-        hasConflict: false,
+        hasConflict: true,
         isMerged: false,
       };
     }
