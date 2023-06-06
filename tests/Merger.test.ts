@@ -1,6 +1,5 @@
 'use strict';
 
-import { writeFileSync } from 'fs';
 import Merger from '../src/merger/Merger';
 import { getFixtures, writeFixture } from './utils/get-fixtures';
 

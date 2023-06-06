@@ -10,6 +10,18 @@ import { promisify } from 'util';
 import chalk from 'chalk';
 const execAsync = promisify(exec);
 
+export type AncestorIdentifier = (
+  file: string,
+  instance: GitMerger,
+  {
+    existsInMain,
+    existsInLiveMirror,
+  }: {
+    existsInMain: boolean;
+    existsInLiveMirror: boolean;
+  },
+) => Promise<string | null>;
+
 export interface GitMergerOptions {
   jsonPaths?: string[];
   gitRoot?: string | null;
@@ -22,6 +34,16 @@ export interface GitMergerOptions {
   commitMessage?: string;
   preferred?: 'ours' | 'theirs' | null;
   exitIfNoExistingDeployment?: boolean;
+  runLocallyOnly?: boolean;
+  ancestorIdentifier?: AncestorIdentifier | null;
+}
+
+export interface GitMergerResult {
+  mergedFiles?: string[];
+  hasConflict?: boolean;
+  hasErrors?: boolean;
+  hasCommitted?: boolean;
+  error?: any;
 }
 
 export class GitMerger {
@@ -38,6 +60,8 @@ export class GitMerger {
   commitMessage: string;
   preferred: 'ours' | 'theirs';
   exitIfNoExistingDeployment: boolean;
+  runLocallyOnly: boolean;
+  ancestorIdentifier: AncestorIdentifier | null = null;
 
   constructor({
     jsonPaths = ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
@@ -51,6 +75,8 @@ export class GitMerger {
     commitMessage = '[AUTOMATED] Update JSON files from `#liveMirror#` branch: #files#',
     formatter = null,
     exitIfNoExistingDeployment = true,
+    runLocallyOnly = false,
+    ancestorIdentifier = null,
   }: GitMergerOptions) {
     // Get the git root as the node module root
     const projectRoot = appRoot.toString();
@@ -64,6 +90,7 @@ export class GitMerger {
     this.commitMessage = commitMessage;
     this.preferred = preferred || 'theirs';
     this.exitIfNoExistingDeployment = exitIfNoExistingDeployment;
+    this.runLocallyOnly = runLocallyOnly;
 
     if (formatter) {
       this.formatter = formatter;
@@ -73,6 +100,10 @@ export class GitMerger {
       };
     }
 
+    if (ancestorIdentifier) {
+      this.ancestorIdentifier = ancestorIdentifier;
+    }
+
     this.git = simpleGit({
       baseDir: this.gitRoot,
       maxConcurrentProcesses: 1,
@@ -80,56 +111,81 @@ export class GitMerger {
     });
   }
 
-  async run() {
+  async run(): Promise<GitMergerResult> {
     // 0. Do we have uncommitted changes?
     let status = await this.git.status();
     if (status.files.length > 0) {
-      await this.logError(
+      const error = new Error(
         'You have uncommitted changes. Please commit them first.',
       );
-      process.exit(1);
+      await this.logError(error);
+      return { hasErrors: true, error };
     }
 
-    // 1. Pull the latest changes from the remote "live-mirror" branch
-    await this.pullLiveMirrorBranch();
+    try {
+      // 1. Pull the latest changes from the remote "live-mirror" branch
+      await this.pullLiveMirrorBranch();
 
-    // 2. Make a list of all JSON files.
-    const { valid: allJsons } = await this.getAllJsons();
+      // 2. Make a list of all JSON files.
+      const { valid: allJsons } = await this.getAllJsons();
 
-    // 3a. Make sure we are on the "main" branch
-    await this.git.checkout(this.mainBranch);
+      // 3a. Make sure we are on the "main" branch
+      await this.git.checkout(this.mainBranch);
 
-    // 3b. Get the current branch
-    await this.checkCurrentBranch();
+      // 3b. Get the current branch
+      await this.checkCurrentBranch();
 
-    // 4. Merge the JSON files - take the last file content from all 3 branches: main, live-mirror and production
-    const { hasConflict, mergedFiles } = await this.mergeJsonFiles(allJsons);
+      // 4. Merge the JSON files - take the last file content from all 3 branches: main, live-mirror and production
+      const { hasConflict, mergedFiles } = await this.mergeJsonFiles(allJsons);
 
-    // 3b. Check if there are conflicts - if there are, abort the commit and ask the user to resolve them.
-    if (status.conflicted.length > 0 || hasConflict) {
-      await this.logError(
-        'There are conflicts in the merge. Please do the merge manually.',
-      );
-      process.exit(1);
-    }
-
-    // 5. Check if there are committed changes
-    status = await this.git.status();
-    if (status.files.length == 0) {
-      await this.logSuccess('No changes to commit');
-      process.exit(0);
-    }
-
-    // 5b. Check the JSON validity using theme check. Merges can sometimes create invalid JSON files. If there are errors, we will abort the commit and ask the user to fix them.
-    if (!this.checkJsonValidity) {
-      const isValid = await this.validateJson();
-      if (!isValid) {
-        process.exit(1);
+      // 3b. Check if there are conflicts - if there are, abort the commit and ask the user to resolve them.
+      if (status.conflicted.length > 0 || hasConflict) {
+        await this.logError(
+          'There are conflicts in the merge. Please do the merge manually.',
+        );
+        return { hasConflict: true };
       }
-    }
 
-    // 6. Commit the changes
-    this.maybeCreateCommit(mergedFiles);
+      // 5. Check if there are committed changes
+      status = await this.git.status();
+      if (status.files.length == 0) {
+        await this.logSuccess('No changes to commit');
+        return {
+          hasCommitted: false,
+          hasErrors: false,
+          mergedFiles,
+          hasConflict,
+        };
+      }
+
+      // 5b. Check the JSON validity using theme check. Merges can sometimes create invalid JSON files. If there are errors, we will abort the commit and ask the user to fix them.
+      if (this.checkJsonValidity) {
+        const isValid = await this.validateJson();
+        if (!isValid) {
+          const error = new Error(
+            'There are errors in the JSON files. Please fix them first.',
+          );
+          await this.logError(error);
+          return { hasErrors: true, mergedFiles, hasConflict, error };
+        }
+      }
+
+      // 6. Commit the changes
+      const hasCommitted = await this.maybeCreateCommit(mergedFiles);
+
+      return {
+        hasCommitted,
+        hasErrors: false,
+        mergedFiles,
+        hasConflict,
+      };
+    } catch (error) {
+      throw error;
+      return {
+        hasErrors: true,
+        error,
+      };
+    }
   }
 
   /**
@@ -145,6 +201,13 @@ export class GitMerger {
    * Pull the latest changes from the remote "live-mirror" branch
    */
   async pullLiveMirrorBranch(): Promise<void> {
+    if (this.runLocallyOnly) {
+      await this.logWarning(
+        'Running locally only. Skipping pulling the latest changes from the remote "live-mirror" branch.',
+      );
+      return;
+    }
+
     // 1. Remove the local "live-mirror" branch, so that we can create a new one from the remote "live-mirror" branch. This will prevent merge conflicts with existing local `live-mirror` branches.
     this.removeLiveMirrorBranch();
 
@@ -163,16 +226,25 @@ export class GitMerger {
 
     // 1d. Check if the "live-mirror" branch exists
     if (currentBranch != this.liveMirrorBranch) {
+      await this.logWarning(`Reverting to "${this.mainBranch}" branch`);
+      await this.git.checkout(this.mainBranch);
       await this.logError(
         `The "${this.liveMirrorBranch}" branch does not exist. Please create it first.`,
       );
-      await this.logWarning(`Reverting to "${this.mainBranch}" branch`);
-      await this.git.checkout(this.mainBranch);
-      process.exit(1);
+      throw new Error(
+        `The "${this.liveMirrorBranch}" branch does not exist. Please create it first.`,
+      );
     }
 
     // 1e. Pull the latest changes from the remote "live-mirror" branch
     await this.git.pull('origin', this.liveMirrorBranch);
+  }
+
+  /**
+   * Use the `origin/` prefix if we are not running strictly locally.
+   */
+  private maybeGetOriginPrefix() {
+    return this.runLocallyOnly ? '' : 'origin/';
   }
 
   /**
@@ -186,13 +258,13 @@ export class GitMerger {
     await this.git.checkout(this.liveMirrorBranch);
     const remoteBranchJsons: string[] = [];
     this.jsonPaths.forEach((jsonFile) => {
-      remoteBranchJsons.push(...glob.sync(jsonFile));
+      remoteBranchJsons.push(...glob.sync(this.gitRoot + '/' + jsonFile));
     });
 
     // Go back to the local "main" branch and make a list of all JSON files
     await this.git.checkout(this.mainBranch);
     this.jsonPaths.forEach((jsonFile) => {
-      allJsons.push(...glob.sync(jsonFile));
+      allJsons.push(...glob.sync(this.gitRoot + '/' + jsonFile));
     });
     remoteBranchJsons.forEach((file) => {
       if (!allJsons.includes(file)) {
@@ -209,7 +281,74 @@ export class GitMerger {
       }
     }
 
-    return { valid: allJsons, ignored: ignoredJsons };
+    return {
+      valid: allJsons.map(this.removeGitRootPrefix),
+      ignored: ignoredJsons.map(this.removeGitRootPrefix),
+    };
+  }
+
+  /**
+   * Remove the git root prefix from the file path.
+   *
+   * @param file
+   * @returns
+   */
+  private removeGitRootPrefix = (file: string): string => {
+    if (file.startsWith(this.gitRoot)) {
+      return file.substring(this.gitRoot.length + 1);
+    }
+
+    return file;
+  };
+
+  /**
+   * Get the file content from a specific commit.
+   */
+  async getFileContentFromCommit(
+    file: string,
+    commitOrBranch: string,
+    displayWarning = true,
+  ): Promise<{ exists: boolean; content: any | null }> {
+    let exists = false;
+    let content = null;
+    try {
+      content = JSON.parse(await this.git.show([`${commitOrBranch}:${file}`]));
+      exists = true;
+    } catch (error) {
+      if (displayWarning) {
+        await this.logWarning(
+          `The file ${file} does not exist in the "${commitOrBranch}" branch/commit.`,
+        );
+      }
+    }
+
+    return { exists, content };
+  }
+
+  /**
+   * Check if a file exists in a specific commit.
+   */
+  async fileExistsInCommit(
+    file: string,
+    commitOrBranch: string,
+  ): Promise<boolean> {
+    try {
+      await this.git.show([`${commitOrBranch}:${file}`]);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Save and commit a JSON file.
+   * @param file
+   * @param content
+   */
+  async saveAndCommitJsonFile(file: string, content: any): Promise<void> {
+    const formatted = this.formatter(JSON.stringify(content), file);
+    fs.writeFileSync(path.resolve(this.gitRoot, file), formatted);
+    await this.git.add(file);
   }
 
   /**
@@ -222,102 +361,13 @@ export class GitMerger {
     let hasConflict = false;
     let mergedFiles = [];
     for await (let file of allJsons) {
-      const ours = JSON.parse(
-        await this.git.show([this.mainBranch + ':' + file]),
-      );
-      const isArray = Array.isArray(ours);
-
-      // Compare to the last "merge" commit, either from "main" or from "production".
-      const lastMerge = (
-        await this.git.log([
-          this.mainBranch,
-          '-n',
-          '1',
-          '-i',
-          `--grep=${this.liveMirrorBranch}`,
-          '--',
-          file,
-        ])
-      )?.latest;
-      const lastDeploy = this.productionBranch
-        ? (
-            await this.git.log([
-              `origin/${this.productionBranch}`,
-              '-n',
-              '1',
-              '-i',
-              '--',
-              file,
-            ])
-          )?.latest
-        : null;
-
-      // If no deployment has been done yet, we should not merge. We should simply exit clean.
-      if (!lastDeploy && this.exitIfNoExistingDeployment) {
-        await this.logWarning(
-          `No deployment has been done yet. No need to merge.`,
-        );
-        process.exit(0);
+      const { hasConflict: fileHasConflict, isMerged } =
+        await this.mergeJsonFile(file);
+      if (isMerged) {
+        mergedFiles.push(file);
       }
 
-      let theirs = isArray ? [] : {};
-      try {
-        theirs = JSON.parse(
-          await this.git.show([`origin/${this.liveMirrorBranch}:` + file]),
-        );
-      } catch (error) {
-        await this.logWarning(
-          `The file ${file} does not exist in the "${this.liveMirrorBranch}" branch.`,
-        );
-      }
-
-      let base = isArray ? [] : {};
-      try {
-        // Identify the base: the latest "merge-like" commit. If there is no such commit, use the latest commit from "main".
-        let latestCommitMainTs = 0;
-        let latestCommitProdTs = 0;
-        if (lastMerge) {
-          latestCommitMainTs = new Date(lastMerge.date).getTime();
-        }
-        if (lastDeploy) {
-          latestCommitProdTs = new Date(lastDeploy.date).getTime();
-        }
-        let latestCommit = this.mainBranch;
-        if (latestCommitMainTs == 0 && latestCommitProdTs == 0) {
-          latestCommit = this.mainBranch;
-        } else {
-          if (latestCommitMainTs >= latestCommitProdTs) {
-            latestCommit = lastMerge.hash;
-          } else if (latestCommitProdTs > latestCommitMainTs) {
-            latestCommit = lastDeploy.hash;
-          }
-        }
-
-        base = JSON.parse(await this.git.show([latestCommit + ':' + file]));
-      } catch (error) {
-        await this.logWarning(`Could not find the base for ${file}: ${error}`);
-      }
-
-      // Skip identical files
-      if (JSON.stringify(ours) === JSON.stringify(theirs)) {
-        continue;
-      }
-
-      await this.logInfo(`Merging ${file}...`);
-      mergedFiles.push(file);
-      const merger = new Merger({
-        ancestor: base,
-        ours,
-        theirs,
-        preferred: this.preferred,
-        filename: file,
-      });
-      const merged = merger.merge();
-      const formatted = this.formatter(JSON.stringify(merged), file);
-      fs.writeFileSync(path.resolve(this.gitRoot, file), formatted);
-      await this.git.add(file);
-
-      if (merger.hasConflicts()) {
+      if (fileHasConflict) {
         hasConflict = true;
         await this.logWarning(
           `There are conflicts in ${file}. Please do the merge manually.`,
@@ -326,6 +376,213 @@ export class GitMerger {
     }
 
     return { hasConflict, mergedFiles };
+  }
+
+  /**
+   * Merge a JSON file
+   * @param file
+   */
+  async mergeJsonFile(
+    file: string,
+  ): Promise<{ hasConflict: boolean; isMerged: boolean }> {
+    // Get the file content from the "main" branch
+    const { content: ours, exists: oursExists } =
+      await this.getFileContentFromCommit(file, this.mainBranch);
+
+    // Get the file content from the "live-mirror" branch
+    const { content: theirs, exists: theirsExists } =
+      await this.getFileContentFromCommit(
+        file,
+        this.maybeGetOriginPrefix() + this.liveMirrorBranch,
+      );
+
+    // Determine the type of the content: array or object
+    let isArray = false;
+    if (ours) {
+      isArray = Array.isArray(ours);
+    } else if (theirs) {
+      isArray = Array.isArray(theirs);
+    }
+
+    let base = isArray ? [] : {};
+    const existsInMain = oursExists;
+    const existsInLiveMirror = theirsExists;
+    const ancestorCommit = await this.getAncestorCommit(file, {
+      existsInMain,
+      existsInLiveMirror,
+    });
+    if (!ancestorCommit) {
+      await this.logWarning(
+        `Could not find the base (ancestor commit) for ${file}.`,
+      );
+
+      // If it's a new file in the "live-mirror" branch, we should save it in the "main" branch.
+      if (existsInLiveMirror && !existsInMain) {
+        await this.saveAndCommitJsonFile(file, theirs);
+        return {
+          hasConflict: false,
+          isMerged: true,
+        };
+      }
+
+      // If it's a new file in the "main" branch, we should skip it.
+      if (existsInMain && !existsInLiveMirror) {
+        await this.logWarning(
+          `The file ${file} exists in the "${this.mainBranch}" branch but not in the "${this.liveMirrorBranch}" branch. Skipping.`,
+        );
+        return {
+          hasConflict: false,
+          isMerged: false,
+        };
+      }
+
+      // If the file exists in both branches, we should merge it, but how??
+      await this.logError(
+        `The file ${file} exists in both branches but we could not find the base (ancestor commit). Please do the merge manually.`,
+      );
+      return {
+        hasConflict: true,
+        isMerged: false,
+      };
+    }
+
+    const result = await this.getFileContentFromCommit(file, ancestorCommit);
+    const exists = result.exists;
+    if (exists) {
+      base = result.content;
+    }
+
+    // Skip identical files
+    if (JSON.stringify(ours) === JSON.stringify(theirs)) {
+      return {
+        hasConflict: false,
+        isMerged: false,
+      };
+    }
+
+    // Merge the files
+    await this.logInfo(`Merging ${file}...`);
+    const emptyValue = isArray ? [] : {};
+    const merger = new Merger({
+      ancestor: base,
+      ours: ours || emptyValue,
+      theirs: theirs || emptyValue,
+      preferred: this.preferred,
+      filename: file,
+    });
+    const merged = merger.merge();
+    await this.saveAndCommitJsonFile(file, merged);
+
+    return {
+      hasConflict: merger.hasConflicts(),
+      isMerged: true,
+    };
+  }
+
+  /**
+   * Get the commit hash to use as a base for the merge.
+   * @param file
+   */
+  async getAncestorCommit(
+    file: string,
+    {
+      existsInMain = null,
+      existsInLiveMirror = null,
+    }: {
+      existsInMain?: boolean | null;
+      existsInLiveMirror?: boolean | null;
+    } = {},
+  ): Promise<string | null> {
+    // Check if the file exists in the "main" branch
+    if (existsInMain === null) {
+      existsInMain = await this.fileExistsInCommit(file, this.mainBranch);
+    }
+
+    // Check if the file exists in the "live-mirror" branch
+    if (existsInLiveMirror === null) {
+      existsInLiveMirror = await this.fileExistsInCommit(
+        file,
+        `${this.maybeGetOriginPrefix()}${this.liveMirrorBranch}`,
+      );
+    }
+
+    // If the file exists in one branch but not in the other, we don't have an ancestor.
+    if (existsInMain !== existsInLiveMirror) {
+      await this.logWarning(
+        `The file ${file} exists in one branch but not in the other.`,
+      );
+      return null;
+    }
+
+    // Use the custom ancestor identifier, if provided
+    if (this.ancestorIdentifier) {
+      return await this.ancestorIdentifier(file, this, {
+        existsInMain,
+        existsInLiveMirror,
+      });
+    }
+
+    // Compare to the last "merge" commit, either from "main" or from "production".
+    const lastMerge = (
+      await this.git.log([
+        this.mainBranch,
+        '-n',
+        '1',
+        '-i',
+        `--grep=${this.liveMirrorBranch}`,
+        '--',
+        file,
+      ])
+    )?.latest;
+
+    let lastDeploy = null;
+    if (this.productionBranch) {
+      lastDeploy = (
+        await this.git.log([
+          `${this.maybeGetOriginPrefix()}${this.productionBranch}`,
+          '-n',
+          '1',
+          '-i',
+          '--',
+          file,
+        ])
+      )?.latest;
+    }
+
+    // If no deployment has been done yet, we should not merge. We should simply exit clean.
+    if (!lastDeploy && this.exitIfNoExistingDeployment) {
+      await this.logError(`No deployment has been done yet. No need to merge.`);
+      process.exit(0);
+    }
+
+    let base = null;
+    try {
+      // Identify the base: the latest "merge-like" commit. If there is no such commit, use the latest commit from "main".
+      let latestCommitMainTs = 0;
+      let latestCommitProdTs = 0;
+      if (lastMerge) {
+        latestCommitMainTs = new Date(lastMerge.date).getTime();
+      }
+      if (lastDeploy) {
+        latestCommitProdTs = new Date(lastDeploy.date).getTime();
+      }
+      let latestCommit: string | null = this.mainBranch;
+      if (latestCommitMainTs == 0 && latestCommitProdTs == 0) {
+        latestCommit = this.mainBranch;
+      } else {
+        if (latestCommitMainTs >= latestCommitProdTs) {
+          latestCommit = lastMerge.hash;
+        } else if (latestCommitProdTs > latestCommitMainTs) {
+          latestCommit = lastDeploy.hash;
+        }
+      }
+
+      base = latestCommit;
+    } catch (error) {
+      await this.logWarning(`Could not find the base for ${file}: ${error}`);
+    }
+
+    return base;
   }
 
   /**
@@ -353,7 +610,7 @@ export class GitMerger {
           );
           await this.logWarning(stdout);
           await this.logError((error as any).toString());
-          process.exit(1);
+          throw error;
         }
       }
 
@@ -383,7 +640,7 @@ export class GitMerger {
   /**
    * Create a commit with the changes
    */
-  async maybeCreateCommit(mergedFiles: string[] = []): Promise<void> {
+  async maybeCreateCommit(mergedFiles: string[] = []): Promise<boolean> {
     const createCommit = this.createCommit;
     const message = this.commitMessage
       .replace('#liveMirror#', this.liveMirrorBranch)
@@ -391,10 +648,12 @@ export class GitMerger {
     if (createCommit) {
       await this.logSuccess('Committing the changes');
       await this.git.commit(message);
+      return true;
     } else {
       await this.logWarning(
         'Not committing the changes (not requested to do so).',
       );
+      return false;
     }
   }
 
@@ -418,7 +677,7 @@ export class GitMerger {
     console.warn(chalk.yellow(message));
   }
 
-  async logError(message: string) {
+  async logError(message: string | Error) {
     console.error(chalk.red(message));
   }
 
