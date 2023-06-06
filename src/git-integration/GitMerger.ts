@@ -407,10 +407,20 @@ export class GitMerger {
     let base = isArray ? [] : {};
     const existsInMain = oursExists;
     const existsInLiveMirror = theirsExists;
-    const ancestorCommit = await this.getAncestorCommit(file, {
-      existsInMain,
-      existsInLiveMirror,
-    });
+    let ancestorCommit = null;
+
+    try {
+      ancestorCommit = await this.getAncestorCommit(file, {
+        existsInMain,
+        existsInLiveMirror,
+      });
+    } catch (e) {
+      return {
+        hasConflict: false,
+        isMerged: false,
+      };
+    }
+
     if (!ancestorCommit) {
       await this.logWarning(
         `Could not find the base (ancestor commit) for ${file}.`,
@@ -549,10 +559,18 @@ export class GitMerger {
       )?.latest;
     }
 
-    // If no deployment has been done yet, we should not merge. We should simply exit clean.
-    if (!lastDeploy && this.exitIfNoExistingDeployment) {
-      await this.logError(`No deployment has been done yet. No need to merge.`);
-      process.exit(0);
+    // If the file is in both branches AND no deployment has been done yet, we should not merge. We should simply exit clean.
+    if (
+      existsInMain === existsInLiveMirror &&
+      !lastDeploy &&
+      this.exitIfNoExistingDeployment
+    ) {
+      await this.logError(
+        `No deployment has been done yet for this file (${file}). No need to merge.`,
+      );
+      throw new Error(
+        `No deployment has been done yet for this file (${file}). No need to merge.`,
+      );
     }
 
     let base = null;
