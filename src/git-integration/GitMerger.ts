@@ -42,6 +42,7 @@ export interface GitMergerOptions {
   runLocallyOnly?: boolean;
   ancestorIdentifier?: AncestorIdentifier | null;
   logger?: Logger | null;
+  verbose?: boolean;
 }
 
 export interface GitMergerResult {
@@ -68,7 +69,8 @@ export class GitMerger {
   exitIfNoExistingDeployment: boolean;
   runLocallyOnly: boolean;
   ancestorIdentifier: AncestorIdentifier | null = null;
-  logger: Logger | null = null;
+  logger: Logger | null;
+  verbose: boolean;
 
   constructor({
     jsonPaths = ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
@@ -85,6 +87,7 @@ export class GitMerger {
     runLocallyOnly = false,
     ancestorIdentifier = null,
     logger = null,
+    verbose = false,
   }: GitMergerOptions) {
     // Get the git root as the node module root
     const projectRoot = appRoot.toString();
@@ -100,6 +103,7 @@ export class GitMerger {
     this.exitIfNoExistingDeployment = exitIfNoExistingDeployment;
     this.runLocallyOnly = runLocallyOnly;
     this.logger = logger;
+    this.verbose = verbose;
 
     if (formatter) {
       this.formatter = formatter;
@@ -263,18 +267,50 @@ export class GitMerger {
     const allJsons: string[] = [];
     const ignoredJsons: string[] = [];
 
+    if (this.verbose) {
+      await this.logInfo(
+        `Getting all JSON files from the "${this.mainBranch}" and "${this.liveMirrorBranch}" branches. The git root is "${this.gitRoot}".`,
+      );
+    }
+
     //  Make a list of all JSON files from the "live-mirror" branch
     await this.git.checkout(this.liveMirrorBranch);
     const remoteBranchJsons: string[] = [];
     this.jsonPaths.forEach((jsonFile) => {
-      remoteBranchJsons.push(...glob.sync(this.gitRoot + '/' + jsonFile));
+      const found = glob.sync(this.gitRoot + '/' + jsonFile);
+      remoteBranchJsons.push(...found);
+      if (this.verbose) {
+        this.logInfo(
+          `Found ${found.length} JSON files in the "${this.liveMirrorBranch}" branch for the pattern "${jsonFile}"`,
+        );
+      }
     });
+    if (this.verbose) {
+      await this.logInfo(
+        `Found ${remoteBranchJsons.length} JSON files in the "${
+          this.liveMirrorBranch
+        }" branch: ${remoteBranchJsons.join(', ')}`,
+      );
+    }
 
     // Go back to the local "main" branch and make a list of all JSON files
     await this.git.checkout(this.mainBranch);
     this.jsonPaths.forEach((jsonFile) => {
-      allJsons.push(...glob.sync(this.gitRoot + '/' + jsonFile));
+      const found = glob.sync(this.gitRoot + '/' + jsonFile);
+      allJsons.push(...found);
+      if (this.verbose) {
+        this.logInfo(
+          `Found ${found.length} JSON files in the "${this.mainBranch}" branch for the pattern "${jsonFile}"`,
+        );
+      }
     });
+    if (this.verbose) {
+      await this.logInfo(
+        `Found ${allJsons.length} JSON files in the "${
+          this.mainBranch
+        }" branch: ${allJsons.join(', ')}`,
+      );
+    }
     remoteBranchJsons.forEach((file) => {
       if (!allJsons.includes(file)) {
         allJsons.push(file);
@@ -287,6 +323,10 @@ export class GitMerger {
       if (isGitIgnored) {
         ignoredJsons.push(file);
         allJsons.splice(allJsons.indexOf(file), 1);
+
+        if (this.verbose) {
+          await this.logInfo(`Ignoring ${file} because it is .gitignored.`);
+        }
       }
     }
 
@@ -370,6 +410,10 @@ export class GitMerger {
     let hasConflict = false;
     let mergedFiles = [];
     for await (let file of allJsons) {
+      if (this.verbose) {
+        await this.logInfo(`Merging ${file}...`);
+      }
+
       const { hasConflict: fileHasConflict, isMerged } =
         await this.mergeJsonFile(file);
       if (isMerged) {
@@ -424,6 +468,12 @@ export class GitMerger {
         existsInLiveMirror,
       });
     } catch (e) {
+      if (this.verbose) {
+        await this.logError(
+          `Could not find the base (ancestor commit) for ${file}: ${e}`,
+        );
+      }
+
       return {
         hasConflict: true,
         isMerged: false,
