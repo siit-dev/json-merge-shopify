@@ -22,6 +22,11 @@ export type AncestorIdentifier = (
   },
 ) => Promise<string | null>;
 
+export type Logger = (
+  message: string | Error,
+  type: 'log' | 'warn' | 'error' | 'success',
+) => unknown;
+
 export interface GitMergerOptions {
   jsonPaths?: string[];
   gitRoot?: string | null;
@@ -36,6 +41,7 @@ export interface GitMergerOptions {
   exitIfNoExistingDeployment?: boolean;
   runLocallyOnly?: boolean;
   ancestorIdentifier?: AncestorIdentifier | null;
+  logger?: Logger | null;
 }
 
 export interface GitMergerResult {
@@ -62,6 +68,7 @@ export class GitMerger {
   exitIfNoExistingDeployment: boolean;
   runLocallyOnly: boolean;
   ancestorIdentifier: AncestorIdentifier | null = null;
+  logger: Logger | null = null;
 
   constructor({
     jsonPaths = ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
@@ -77,6 +84,7 @@ export class GitMerger {
     exitIfNoExistingDeployment = true,
     runLocallyOnly = false,
     ancestorIdentifier = null,
+    logger = null,
   }: GitMergerOptions) {
     // Get the git root as the node module root
     const projectRoot = appRoot.toString();
@@ -91,6 +99,7 @@ export class GitMerger {
     this.preferred = preferred || 'theirs';
     this.exitIfNoExistingDeployment = exitIfNoExistingDeployment;
     this.runLocallyOnly = runLocallyOnly;
+    this.logger = logger;
 
     if (formatter) {
       this.formatter = formatter;
@@ -688,18 +697,38 @@ export class GitMerger {
   }
 
   async logInfo(message: string) {
+    if (this.logger) {
+      this.logger(message, 'log');
+      return;
+    }
+
     console.log(chalk.blue(message));
   }
 
   async logWarning(message: string) {
+    if (this.logger) {
+      this.logger(message, 'warn');
+      return;
+    }
+
     console.warn(chalk.yellow(message));
   }
 
   async logError(message: string | Error) {
+    if (this.logger) {
+      this.logger(message, 'error');
+      return;
+    }
+
     console.error(chalk.red(message));
   }
 
   async logSuccess(message: string) {
+    if (this.logger) {
+      this.logger(message, 'success');
+      return;
+    }
+
     console.error(chalk.green(message));
   }
 }
