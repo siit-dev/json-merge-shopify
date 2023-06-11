@@ -105,13 +105,13 @@ export class GitMerger {
    * @param options - The options for the merger. If it's a string, it's the path to a config file (JSON or JS)
    */
   constructor(
-    options: GitMergerOptions | string = {},
+    options: GitMergerOptions | string | null,
     extraOptions: Partial<GitMergerOptions> = {},
   ) {
     let mergedOptions: Required<GitMergerOptions>;
 
     // If the options are a string, it's the path to a config file.
-    if (typeof options == 'string') {
+    if (typeof options == 'string' || options == null) {
       options = this.getOptionsFromConfigFile(options, extraOptions);
       mergedOptions = {
         ...this.getDefaultOptions(),
@@ -191,7 +191,7 @@ export class GitMerger {
   getOptionsFromConfigFile(
     filename: string | null = null,
     extraOptions: Partial<GitMergerOptions> = {},
-  ): GitMergerOptions {
+  ): GitMergerOptions | null {
     // Make sure we have a git root
     this.gitRoot = this.gitRoot || extraOptions.gitRoot || appRoot.toString();
 
@@ -206,16 +206,16 @@ export class GitMerger {
     }
     if (!filename) {
       this.logWarning('No config file found for git root: ' + this.gitRoot);
-      return {};
+      return null;
     }
 
     const configFile = path.resolve(this.gitRoot, filename);
     if (!fs.existsSync(configFile)) {
       this.logWarning('No config file found at ' + configFile);
-      return {};
+      return null;
     }
 
-    let config = {};
+    let config = null;
     if (configFile.endsWith('.js')) {
       this.logInfo('Loading config file (JS): ' + configFile);
       config = require(configFile);
@@ -226,7 +226,7 @@ export class GitMerger {
       config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
     }
 
-    return config as GitMergerOptions;
+    return config as GitMergerOptions | null;
   }
 
   async run(): Promise<GitMergerResult> {

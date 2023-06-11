@@ -72,6 +72,30 @@ const gitRoot = path.resolve(__dirname, '../../../'); // The root of the git rep
 })();
 ```
 
+### Config file
+
+You can also use a config file to specify the options. The config file can be a JSON file (`shopify-git-merger.config.json`) or a JS file (`shopify-git-merger.config.js`) that exports an object with the options.
+
+Then pass the path to the config file to the `GitMerger` constructor.
+
+```javascript
+import { GitMerger } from '@smartimpact-it/json-merge-shopify';
+const gitRoot = path.resolve(__dirname, '../../../'); // The root of the git repository
+const merger = new GitMerger('shopify-git-merger.config.json', {
+  gitRoot,
+});
+```
+
+Or you can pass `null` as the first argument and the `GitMerger` will look for the config file in the root of the git repository.
+
+```javascript
+import { GitMerger } from '@smartimpact-it/json-merge-shopify';
+const gitRoot = path.resolve(__dirname, '../../../'); // The root of the git repository
+const merger = new GitMerger(null, {
+  gitRoot,
+});
+```
+
 ### Github Workflows
 
 You will need 2 workflows:
