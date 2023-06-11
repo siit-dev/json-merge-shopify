@@ -34,13 +34,14 @@ export interface GitMergerOptions {
   mainBranch?: string;
   liveMirrorBranch?: string;
   productionBranch?: string | null;
-  checkJsonValidity?: boolean;
-  formatter?: ((json: string, path: string) => string) | null;
-  commitMessage?: string;
-  preferred?: 'ours' | 'theirs' | null;
-  exitIfNoExistingDeployment?: boolean;
   runLocallyOnly?: boolean;
+  exitIfNoExistingDeployment?: boolean;
+  preferred?: 'ours' | 'theirs' | null;
+  checkJsonValidity?: boolean;
+  commitMessage?: string;
+  createNewFiles?: boolean;
   ancestorIdentifier?: AncestorIdentifier | null;
+  formatter?: ((json: string, path: string) => string) | null;
   logger?: Logger | null;
   verbose?: boolean;
 }
@@ -52,6 +53,31 @@ export interface GitMergerResult {
   hasCommitted?: boolean;
   error?: any;
 }
+
+export const defaultGitMergerOptions: Required<GitMergerOptions> = {
+  jsonPaths: ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
+  gitRoot: null,
+  createCommit: false,
+  mainBranch: 'main',
+  liveMirrorBranch: 'live-mirror',
+  productionBranch: 'production',
+  preferred: 'theirs',
+  checkJsonValidity: true,
+  commitMessage:
+    '[AUTOMATED] Update JSON files from `#liveMirror#` branch: #files#',
+  formatter: null,
+  exitIfNoExistingDeployment: true,
+  runLocallyOnly: false,
+  ancestorIdentifier: null,
+  createNewFiles: false,
+  logger: null,
+  verbose: false,
+};
+
+export const possibleConfigFiles: string[] = [
+  'shopify-git-merger.config.js',
+  'shopify-git-merger.config.json',
+];
 
 export class GitMerger {
   chalkInstance: any | null = null;
@@ -71,24 +97,54 @@ export class GitMerger {
   ancestorIdentifier: AncestorIdentifier | null = null;
   logger: Logger | null;
   verbose: boolean;
+  createNewFiles: boolean;
 
-  constructor({
-    jsonPaths = ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
-    gitRoot = null,
-    createCommit = false,
-    mainBranch = 'main',
-    liveMirrorBranch = 'live-mirror',
-    productionBranch = 'production',
-    preferred = 'theirs',
-    checkJsonValidity = true,
-    commitMessage = '[AUTOMATED] Update JSON files from `#liveMirror#` branch: #files#',
-    formatter = null,
-    exitIfNoExistingDeployment = true,
-    runLocallyOnly = false,
-    ancestorIdentifier = null,
-    logger = null,
-    verbose = false,
-  }: GitMergerOptions) {
+  /**
+   * Create a new GitMerger instance.
+   *
+   * @param options - The options for the merger. If it's a string, it's the path to a config file (JSON or JS)
+   */
+  constructor(
+    options: GitMergerOptions | string = {},
+    extraOptions: Partial<GitMergerOptions> = {},
+  ) {
+    let mergedOptions: Required<GitMergerOptions>;
+
+    // If the options are a string, it's the path to a config file.
+    if (typeof options == 'string') {
+      options = this.getOptionsFromConfigFile(options, extraOptions);
+      mergedOptions = {
+        ...this.getDefaultOptions(),
+        ...extraOptions,
+        ...options,
+      };
+    } else {
+      mergedOptions = {
+        ...this.getDefaultOptions(),
+        ...options,
+        ...extraOptions,
+      };
+    }
+
+    const {
+      jsonPaths,
+      gitRoot,
+      createCommit,
+      mainBranch,
+      liveMirrorBranch,
+      productionBranch,
+      preferred,
+      checkJsonValidity,
+      commitMessage,
+      formatter,
+      exitIfNoExistingDeployment,
+      runLocallyOnly,
+      ancestorIdentifier,
+      createNewFiles,
+      logger,
+      verbose,
+    } = mergedOptions;
+
     // Get the git root as the node module root
     const projectRoot = appRoot.toString();
     this.gitRoot = gitRoot || projectRoot;
@@ -104,6 +160,7 @@ export class GitMerger {
     this.runLocallyOnly = runLocallyOnly;
     this.logger = logger;
     this.verbose = verbose;
+    this.createNewFiles = createNewFiles;
 
     if (formatter) {
       this.formatter = formatter;
@@ -122,6 +179,54 @@ export class GitMerger {
       maxConcurrentProcesses: 1,
       trimmed: false,
     });
+  }
+
+  getDefaultOptions(): Required<GitMergerOptions> {
+    return defaultGitMergerOptions;
+  }
+
+  /**
+   * Get the options from a config file.
+   */
+  getOptionsFromConfigFile(
+    filename: string | null = null,
+    extraOptions: Partial<GitMergerOptions> = {},
+  ): GitMergerOptions {
+    // Make sure we have a git root
+    this.gitRoot = this.gitRoot || extraOptions.gitRoot || appRoot.toString();
+
+    if (!filename) {
+      for (let file of possibleConfigFiles) {
+        const filePath = path.resolve(this.gitRoot, file);
+        if (fs.existsSync(filePath)) {
+          filename = file;
+          break;
+        }
+      }
+    }
+    if (!filename) {
+      this.logWarning('No config file found for git root: ' + this.gitRoot);
+      return {};
+    }
+
+    const configFile = path.resolve(this.gitRoot, filename);
+    if (!fs.existsSync(configFile)) {
+      this.logWarning('No config file found at ' + configFile);
+      return {};
+    }
+
+    let config = {};
+    if (configFile.endsWith('.js')) {
+      this.logInfo('Loading config file (JS): ' + configFile);
+      config = require(configFile);
+    }
+
+    if (configFile.endsWith('.json')) {
+      this.logInfo('Loading config file (JSON): ' + configFile);
+      config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    }
+
+    return config as GitMergerOptions;
   }
 
   async run(): Promise<GitMergerResult> {
@@ -289,7 +394,9 @@ export class GitMerger {
       await this.logInfo(
         `Found ${remoteBranchJsons.length} JSON files in the "${
           this.liveMirrorBranch
-        }" branch: ${remoteBranchJsons.join(', ')}`,
+        }" branch: ${remoteBranchJsons
+          .map(this.removeGitRootPrefix)
+          .join(', ')}`,
       );
     }
 
@@ -308,7 +415,7 @@ export class GitMerger {
       await this.logInfo(
         `Found ${allJsons.length} JSON files in the "${
           this.mainBranch
-        }" branch: ${allJsons.join(', ')}`,
+        }" branch: ${allJsons.map(this.removeGitRootPrefix).join(', ')}`,
       );
     }
     remoteBranchJsons.forEach((file) => {
@@ -325,7 +432,11 @@ export class GitMerger {
         allJsons.splice(allJsons.indexOf(file), 1);
 
         if (this.verbose) {
-          await this.logInfo(`Ignoring ${file} because it is .gitignored.`);
+          await this.logInfo(
+            `Ignoring ${this.removeGitRootPrefix(
+              file,
+            )} because it is .gitignored.`,
+          );
         }
       }
     }
@@ -485,8 +596,23 @@ export class GitMerger {
         `Could not find the base (ancestor commit) for ${file}.`,
       );
 
-      // If it's a new file in the "live-mirror" branch, we should save it in the "main" branch.
+      // Handle new files in the "live-mirror" branch.
       if (existsInLiveMirror && !existsInMain) {
+        // If the "createNewFiles" flag is false, we should skip it.
+        if (!this.createNewFiles) {
+          await this.logWarning(
+            `The file ${file} exists in the "${this.liveMirrorBranch}" branch but not in the "${this.mainBranch}" branch. Skipping because "createNewFiles" flag is false.`,
+          );
+          return {
+            hasConflict: false,
+            isMerged: false,
+          };
+        }
+
+        // If the "createNewFiles" flag is true, we should save it in the "main" branch.
+        await this.logWarning(
+          `The file ${file} exists in the "${this.liveMirrorBranch}" branch but not in the "${this.mainBranch}" branch. Saving it in the "${this.mainBranch}" branch, because "createNewFiles" flag is true.`,
+        );
         await this.saveAndCommitJsonFile(file, theirs);
         return {
           hasConflict: false,

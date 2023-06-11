@@ -12,7 +12,7 @@ beforeEach(async () => {
 
   // Create the folder
   if (fs.existsSync(gitRoot)) {
-    fs.rmdirSync(gitRoot, { recursive: true });
+    fs.rmSync(gitRoot, { recursive: true });
   }
   fs.mkdirSync(gitRoot);
 
@@ -70,8 +70,64 @@ beforeEach(async () => {
 
 afterEach(async () => {
   if (fs.existsSync(gitRoot)) {
-    fs.rmdirSync(gitRoot, { recursive: true });
+    fs.rmSync(gitRoot, { recursive: true });
   }
+});
+
+it('can load setting from a JS file', async () => {
+  const jsFile = gitRoot + '/settings.js';
+  fs.writeFileSync(
+    jsFile,
+    `module.exports = ` +
+      JSON.stringify({
+        runLocallyOnly: true,
+        exitIfNoExistingDeployment: false,
+        checkJsonValidity: false,
+        createCommit: true,
+        commitMessage: 'test',
+        preferred: 'theirs',
+      }) +
+      ';',
+  );
+
+  const merger = new GitMerger('settings.js', {
+    gitRoot,
+  });
+  expect(merger.runLocallyOnly).toBe(true);
+  expect(merger.exitIfNoExistingDeployment).toBe(false);
+  expect(merger.checkJsonValidity).toBe(false);
+  expect(merger.createCommit).toBe(true);
+  expect(merger.preferred).toBe('theirs');
+  expect(merger.commitMessage).toBe('test');
+
+  fs.unlinkSync(jsFile);
+});
+
+it('can load setting from a JSON file', async () => {
+  const jsFile = gitRoot + '/settings.json';
+  fs.writeFileSync(
+    jsFile,
+    JSON.stringify({
+      runLocallyOnly: true,
+      exitIfNoExistingDeployment: false,
+      checkJsonValidity: false,
+      createCommit: true,
+      commitMessage: 'test',
+      preferred: 'theirs',
+    }),
+  );
+
+  const merger = new GitMerger('settings.json', {
+    gitRoot,
+  });
+  expect(merger.runLocallyOnly).toBe(true);
+  expect(merger.exitIfNoExistingDeployment).toBe(false);
+  expect(merger.checkJsonValidity).toBe(false);
+  expect(merger.createCommit).toBe(true);
+  expect(merger.preferred).toBe('theirs');
+  expect(merger.commitMessage).toBe('test');
+
+  fs.unlinkSync(jsFile);
 });
 
 it('detects the correct current branch', async () => {
@@ -81,6 +137,7 @@ it('detects the correct current branch', async () => {
     gitRoot,
     runLocallyOnly: true,
     exitIfNoExistingDeployment: false,
+    createNewFiles: true,
   });
 
   const currentBranch = await merger.checkCurrentBranch();
@@ -92,6 +149,7 @@ it('gets all the JSON files', async () => {
     gitRoot,
     runLocallyOnly: true,
     exitIfNoExistingDeployment: false,
+    createNewFiles: true,
   });
 
   const files = await merger.getAllJsons();
@@ -107,6 +165,7 @@ it('gets the ancestor commit', async () => {
     runLocallyOnly: true,
     exitIfNoExistingDeployment: false,
     checkJsonValidity: false,
+    createNewFiles: true,
   });
 
   const ancestorCommit = await merger.getAncestorCommit('templates/page.json');
@@ -128,6 +187,7 @@ it('merges correctly data from live-mirror (preferred: theirs)', async () => {
     checkJsonValidity: false,
     createCommit: true,
     preferred: 'theirs',
+    createNewFiles: true,
   });
 
   const results = await merger.run();
@@ -167,6 +227,7 @@ it('merges correctly data from live-mirror (preferred: ours)', async () => {
     checkJsonValidity: false,
     createCommit: true,
     preferred: 'ours',
+    createNewFiles: true,
   });
 
   // Run the merge
@@ -206,6 +267,7 @@ it("doesn't run if there are uncommitted changes", async () => {
     checkJsonValidity: false,
     createCommit: true,
     preferred: 'theirs',
+    createNewFiles: true,
   });
 
   // Go to `main` and change a file + create a new one
@@ -238,6 +300,7 @@ it.each(['ours', 'theirs'])(
       checkJsonValidity: false,
       createCommit: true,
       preferred,
+      createNewFiles: true,
     });
 
     // Go to `live-mirror` and change a file + create a new one
@@ -290,6 +353,7 @@ it.each(['ours', 'theirs'])(
       checkJsonValidity: false,
       createCommit: true,
       preferred,
+      createNewFiles: true,
     });
 
     // Go to `live-mirror` and change a file + create a new one
@@ -329,6 +393,7 @@ it('merges correctly data when both `main` and `live-mirror` have changes', asyn
     checkJsonValidity: false,
     createCommit: true,
     preferred: 'theirs',
+    createNewFiles: true,
   });
 
   // Go to `main` and change a file + create a new one
