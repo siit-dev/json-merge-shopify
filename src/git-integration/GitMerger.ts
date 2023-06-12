@@ -424,21 +424,12 @@ export class GitMerger {
       }
     });
 
-    console.log('allJsons', allJsons);
-
     // Remove all .gitignored files from the list
     const valid = [];
     for await (let file of allJsons) {
       const filename = this.removeGitRootPrefix(file);
       const gitIgnored = await this.git.checkIgnore(filename);
       const isGitIgnored = gitIgnored.length > 0;
-      if (this.verbose) {
-        await this.logInfo(
-          `Checking if ${this.removeGitRootPrefix(
-            filename,
-          )} is .gitignored: ${isGitIgnored}. Git ignored patterns: ${gitIgnored}`,
-        );
-      }
 
       if (isGitIgnored) {
         ignoredJsons.push(file);
