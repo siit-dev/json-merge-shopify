@@ -424,25 +424,39 @@ export class GitMerger {
       }
     });
 
+    console.log('allJsons', allJsons);
+
     // Remove all .gitignored files from the list
+    const valid = [];
     for await (let file of allJsons) {
-      const isGitIgnored = (await this.git.checkIgnore(file)).length > 0;
+      const filename = this.removeGitRootPrefix(file);
+      const gitIgnored = await this.git.checkIgnore(filename);
+      const isGitIgnored = gitIgnored.length > 0;
+      if (this.verbose) {
+        await this.logInfo(
+          `Checking if ${this.removeGitRootPrefix(
+            filename,
+          )} is .gitignored: ${isGitIgnored}. Git ignored patterns: ${gitIgnored}`,
+        );
+      }
+
       if (isGitIgnored) {
         ignoredJsons.push(file);
-        allJsons.splice(allJsons.indexOf(file), 1);
 
         if (this.verbose) {
           await this.logInfo(
             `Ignoring ${this.removeGitRootPrefix(
-              file,
+              filename,
             )} because it is .gitignored.`,
           );
         }
+      } else {
+        valid.push(file);
       }
     }
 
     return {
-      valid: allJsons.map(this.removeGitRootPrefix),
+      valid: valid.map(this.removeGitRootPrefix),
       ignored: ignoredJsons.map(this.removeGitRootPrefix),
     };
   }

@@ -54,8 +54,13 @@ beforeEach(async () => {
     gitRoot + '/templates/page.ignored-a.json',
     JSON.stringify(theirs),
   );
+  fs.writeFileSync(
+    gitRoot + '/templates/page.ignored.json',
+    JSON.stringify({}),
+  );
   await git.add('.');
   await git.raw(['add', 'templates/page.ignored-a.json', '-f']);
+  await git.raw(['add', 'templates/page.ignored.json', '-f']);
   await git.commit('Add new json files on live-mirror');
 
   // Go back to the `main` branch
@@ -155,7 +160,7 @@ it('gets all the JSON files', async () => {
   const files = await merger.getAllJsons();
   expect(files).toMatchObject({
     valid: ['templates/page.json', 'templates/page.alt.json'],
-    ignored: ['templates/page.ignored-a.json'],
+    ignored: ['templates/page.ignored.json', 'templates/page.ignored-a.json'],
   });
 });
 
