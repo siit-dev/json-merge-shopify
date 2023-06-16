@@ -1,4 +1,8 @@
-import simpleGit from 'simple-git';
+import simpleGit, {
+  DefaultLogFields,
+  ListLogLine,
+  SimpleGit,
+} from 'simple-git';
 import * as fs from 'fs';
 import path from 'path';
 import * as glob from 'glob';
@@ -83,7 +87,7 @@ export class GitMerger {
   chalkInstance: any | null = null;
   gitRoot: string;
   jsonPaths: string[];
-  git: any = null;
+  git: SimpleGit;
   createCommit: boolean;
   mainBranch: string;
   productionBranch: string | null;
@@ -723,31 +727,8 @@ export class GitMerger {
     }
 
     // Compare to the last "merge" commit, either from "main" or from "production".
-    const lastMerge = (
-      await this.git.log([
-        this.mainBranch,
-        '-n',
-        '1',
-        '-i',
-        `--grep=${this.liveMirrorBranch}`,
-        '--',
-        file,
-      ])
-    )?.latest;
-
-    let lastDeploy = null;
-    if (this.productionBranch) {
-      lastDeploy = (
-        await this.git.log([
-          `${this.maybeGetOriginPrefix()}${this.productionBranch}`,
-          '-n',
-          '1',
-          '-i',
-          '--',
-          file,
-        ])
-      )?.latest;
-    }
+    const lastMerge = await this.getLastMergeCommit(file);
+    const lastDeploy = await this.getDeployCommit(file);
 
     // If the file is in both branches AND no deployment has been done yet, we should not merge. We should simply exit clean.
     if (
@@ -763,34 +744,110 @@ export class GitMerger {
       );
     }
 
-    let base = null;
-    try {
-      // Identify the base: the latest "merge-like" commit. If there is no such commit, use the latest commit from "main".
-      let latestCommitMainTs = 0;
-      let latestCommitProdTs = 0;
-      if (lastMerge) {
-        latestCommitMainTs = new Date(lastMerge.date).getTime();
-      }
-      if (lastDeploy) {
-        latestCommitProdTs = new Date(lastDeploy.date).getTime();
-      }
-      let latestCommit: string | null = this.mainBranch;
-      if (latestCommitMainTs == 0 && latestCommitProdTs == 0) {
-        latestCommit = this.mainBranch;
-      } else {
-        if (latestCommitMainTs >= latestCommitProdTs) {
-          latestCommit = lastMerge.hash;
-        } else if (latestCommitProdTs > latestCommitMainTs) {
-          latestCommit = lastDeploy.hash;
-        }
-      }
-
-      base = latestCommit;
-    } catch (error) {
-      await this.logWarning(`Could not find the base for ${file}: ${error}`);
+    const base = this.sortCommitsByDate(lastMerge, lastDeploy);
+    if (!base) {
+      await this.logWarning(`Could not find the base for ${file}.`);
+      return null;
     }
 
-    return base;
+    return base.hash;
+  }
+
+  /**
+   * Get the last merge commit for a file.
+   */
+  async getLastMergeCommit(
+    file: string,
+  ): Promise<(DefaultLogFields & ListLogLine) | null> {
+    return (
+      await this.git.log([
+        this.mainBranch,
+        '-n',
+        '1',
+        '-i',
+        `--grep=${this.liveMirrorBranch}`,
+        '--',
+        file,
+      ])
+    )?.latest;
+  }
+
+  /**
+   * Get the last production deploy commit for a file.
+   */
+  async getLastProductionDeployCommit(
+    file: string,
+  ): Promise<(DefaultLogFields & ListLogLine) | null> {
+    if (!this.productionBranch) {
+      return null;
+    }
+
+    return (
+      await this.git.log([
+        `${this.maybeGetOriginPrefix()}${this.productionBranch}`,
+        '-n',
+        '1',
+        '-i',
+        '--',
+        file,
+      ])
+    )?.latest;
+  }
+
+  /**
+   * Get the most recent common commit between "main" and "live-mirror" branches.
+   */
+  async getMostRecentCommonCommit(
+    file: string,
+  ): Promise<(DefaultLogFields & ListLogLine) | null> {
+    const lastCommonCommit = await this.git.raw([
+      'merge-base',
+      this.mainBranch,
+      `${this.maybeGetOriginPrefix()}${this.liveMirrorBranch}`,
+    ]);
+    if (!lastCommonCommit) {
+      return null;
+    }
+
+    return (await this.git.log([lastCommonCommit, '-n', '1', '-i', '--', file]))
+      ?.latest;
+  }
+
+  /**
+   * Get the commit to use as a base for the merge.
+   */
+  async getDeployCommit(
+    file: string,
+  ): Promise<(DefaultLogFields & ListLogLine) | null> {
+    return (
+      (await this.getLastProductionDeployCommit(file)) ||
+      (await this.getMostRecentCommonCommit(file))
+    );
+  }
+
+  sortCommitsByDate(
+    ...commits: Array<(DefaultLogFields & ListLogLine) | null>
+  ): (DefaultLogFields & ListLogLine) | null {
+    return (
+      commits
+        .filter((commit) => commit != null)
+        .sort((a, b) => {
+          if (!a && !b) {
+            return 0;
+          }
+          if (!a) {
+            return -1;
+          }
+          if (!b) {
+            return 1;
+          }
+
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateA - dateB;
+        })
+        .pop() || null
+    );
   }
 
   /**
