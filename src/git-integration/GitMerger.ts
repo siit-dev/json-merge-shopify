@@ -744,10 +744,25 @@ export class GitMerger {
       );
     }
 
+    if (this.verbose) {
+      await this.logInfo(
+        `Last merge commit for ${file}: ${lastMerge?.hash} (${lastMerge?.date})`,
+      );
+      await this.logInfo(
+        `Last deploy commit for ${file}: ${lastDeploy?.hash} (${lastDeploy?.date})`,
+      );
+    }
+
     const base = this.sortCommitsByDate(lastMerge, lastDeploy);
     if (!base) {
       await this.logWarning(`Could not find the base for ${file}.`);
       return null;
+    }
+
+    if (this.verbose) {
+      await this.logInfo(
+        `Using ${base.hash} (${base.date}) as a base for ${file}`,
+      );
     }
 
     return base.hash;
