@@ -787,6 +787,9 @@ export class GitMerger {
         ])
       )?.latest;
     } catch (error) {
+      if (this.verbose) {
+        this.logWarning('Error while getting the last merge commit: ' + error);
+      }
       return null;
     }
   }
@@ -813,6 +816,12 @@ export class GitMerger {
         ])
       )?.latest;
     } catch (error) {
+      if (this.verbose) {
+        this.logWarning(
+          'Error while getting the most recent production deployment commit: ' +
+            error,
+        );
+      }
       return null;
     }
   }
@@ -837,6 +846,11 @@ export class GitMerger {
         await this.git.log([lastCommonCommit, '-n', '1', '-i', '--', file])
       )?.latest;
     } catch (error) {
+      if (this.verbose) {
+        this.logWarning(
+          'Error while getting the most recent common commit: ' + error,
+        );
+      }
       return null;
     }
   }
