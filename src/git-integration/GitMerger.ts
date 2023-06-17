@@ -774,17 +774,21 @@ export class GitMerger {
   async getLastMergeCommit(
     file: string,
   ): Promise<(DefaultLogFields & ListLogLine) | null> {
-    return (
-      await this.git.log([
-        this.mainBranch,
-        '-n',
-        '1',
-        '-i',
-        `--grep=${this.liveMirrorBranch}`,
-        '--',
-        file,
-      ])
-    )?.latest;
+    try {
+      return (
+        await this.git.log([
+          this.mainBranch,
+          '-n',
+          '1',
+          '-i',
+          `--grep=${this.liveMirrorBranch}`,
+          '--',
+          file,
+        ])
+      )?.latest;
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
@@ -797,16 +801,20 @@ export class GitMerger {
       return null;
     }
 
-    return (
-      await this.git.log([
-        `${this.maybeGetOriginPrefix()}${this.productionBranch}`,
-        '-n',
-        '1',
-        '-i',
-        '--',
-        file,
-      ])
-    )?.latest;
+    try {
+      return (
+        await this.git.log([
+          `${this.maybeGetOriginPrefix()}${this.productionBranch}`,
+          '-n',
+          '1',
+          '-i',
+          '--',
+          file,
+        ])
+      )?.latest;
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
@@ -815,17 +823,22 @@ export class GitMerger {
   async getMostRecentCommonCommit(
     file: string,
   ): Promise<(DefaultLogFields & ListLogLine) | null> {
-    const lastCommonCommit = await this.git.raw([
-      'merge-base',
-      this.mainBranch,
-      `${this.maybeGetOriginPrefix()}${this.liveMirrorBranch}`,
-    ]);
-    if (!lastCommonCommit) {
+    try {
+      const lastCommonCommit = await this.git.raw([
+        'merge-base',
+        this.mainBranch,
+        `${this.maybeGetOriginPrefix()}${this.liveMirrorBranch}`,
+      ]);
+      if (!lastCommonCommit) {
+        return null;
+      }
+
+      return (
+        await this.git.log([lastCommonCommit, '-n', '1', '-i', '--', file])
+      )?.latest;
+    } catch (error) {
       return null;
     }
-
-    return (await this.git.log([lastCommonCommit, '-n', '1', '-i', '--', file]))
-      ?.latest;
   }
 
   /**
