@@ -843,7 +843,14 @@ export class GitMerger {
       }
 
       return (
-        await this.git.log([lastCommonCommit, '-n', '1', '-i', '--', file])
+        await this.git.log([
+          lastCommonCommit.trim(),
+          '-n',
+          '1',
+          '-i',
+          '--',
+          file,
+        ])
       )?.latest;
     } catch (error) {
       if (this.verbose) {
