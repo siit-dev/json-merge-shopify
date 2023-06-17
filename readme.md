@@ -256,3 +256,7 @@ jobs:
         run: |
           git status | grep 'Your branch is ahead' && git push && echo 'Pushed changes' || echo "No changes to push"
 ```
+
+### Github Action
+
+You can also use the [`siit-dev/merge-json-shopify-branches` pre-built Github Action](https://github.com/siit-dev/merge-json-shopify-branches).
