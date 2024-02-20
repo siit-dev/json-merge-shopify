@@ -93,6 +93,7 @@ export class GitMerger {
   productionBranch: string | null;
   liveMirrorBranch: string;
   checkJsonValidity: boolean;
+  failIfThemeCheckMissing: boolean;
   formatter: (json: string, path: string) => string;
   commitMessage: string;
   preferred: 'ours' | 'theirs';
@@ -139,6 +140,7 @@ export class GitMerger {
       productionBranch,
       preferred,
       checkJsonValidity,
+      failIfThemeCheckMissing,
       commitMessage,
       formatter,
       exitIfNoExistingDeployment,
@@ -158,6 +160,7 @@ export class GitMerger {
     this.liveMirrorBranch = liveMirrorBranch;
     this.productionBranch = productionBranch;
     this.checkJsonValidity = checkJsonValidity;
+    this.failIfThemeCheckMissing = failIfThemeCheckMissing;
     this.commitMessage = commitMessage;
     this.preferred = preferred || 'theirs';
     this.exitIfNoExistingDeployment = exitIfNoExistingDeployment;
@@ -915,16 +918,24 @@ export class GitMerger {
       // The JSON is only the first line of the output.
       const json = stdout.split('\n').slice(0, 1).join('');
       let result = [];
-      if (json.trim() == '') {
+      if (json.trim() != '') {
         try {
           result = JSON.parse(json);
         } catch (error) {
           await this.logError(
-            'The JSON output is not valid. Is theme check installed?',
+            'The JSON output is not valid. Is theme-check installed?',
           );
+          await this.logInfo(json);
           await this.logWarning(stdout);
+          await this.logError(stderr);
           await this.logError((error as any).toString());
-          throw error;
+
+          // If the JSON is not valid, we should throw an error.
+          if (this.failIfThemeCheckMissing) {
+            throw error;
+          } else {
+            return true;
+          }
         }
       }
 
