@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import path from 'path';
 import * as glob from 'glob';
 import { Merger } from '../merger/Merger';
+// @ts-ignore
 import prettier from 'prettier';
 import appRoot from 'app-root-path';
 import { exec } from 'child_process';
