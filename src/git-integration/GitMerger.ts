@@ -305,7 +305,7 @@ export class GitMerger {
 
       // 5b. Check the JSON validity using theme check. Merges can sometimes create invalid JSON files. If there are errors, we will abort the commit and ask the user to fix them.
       if (this.checkJsonValidity) {
-        const isValid = await this.validateJson();
+        const isValid = await this.validateJson(allJsons);
         if (!isValid) {
           const error = new Error(
             'There are errors in the JSON files. Please fix them first.',
@@ -925,7 +925,7 @@ export class GitMerger {
   /**
    * Check the JSON validity using theme check. Merges can sometimes create invalid JSON files.
    */
-  async validateJson(): Promise<boolean> {
+  async validateJson(paths: string[]): Promise<boolean> {
     await this.logWarning('Checking JSON validity using `shopify theme check`');
     try {
       // Execute "shopify theme check" command and get the output as JSON.
@@ -939,10 +939,11 @@ export class GitMerger {
       if (json.trim() != '') {
         try {
           const rawResult = JSON.parse(json) as ThemeCheckResult[];
-          // Keep only the JSON files with errors
+          // Keep only the JSON files with errors that match the glob patterns
           result = rawResult
             .filter((item) => item.errorCount > 0)
-            .filter((item) => item.path.endsWith('.json'));
+            .filter((item) => item.path.endsWith('.json'))
+            .filter((item) => paths.find((path) => item.path.endsWith(path)));
         } catch (error) {
           await this.logError(
             'The JSON output is not valid. Is theme-check installed?',
