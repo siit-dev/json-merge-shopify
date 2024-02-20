@@ -15,6 +15,23 @@ import { promisify } from 'util';
 import chalk from 'chalk';
 const execAsync = promisify(exec);
 
+export type ThemeCheckResultOffense = {
+  check: string;
+  severity: number;
+  start_row: number;
+  start_column: number;
+  end_row: number;
+  end_column: number;
+  message: string;
+};
+export type ThemeCheckResult = {
+  path: string;
+  offenses: ThemeCheckResultOffense[];
+  errorCount: number;
+  suggestionCount: number;
+  styleCount: number;
+};
+
 export type AncestorIdentifier = (
   file: string,
   instance: GitMerger,
@@ -909,21 +926,23 @@ export class GitMerger {
    * Check the JSON validity using theme check. Merges can sometimes create invalid JSON files.
    */
   async validateJson(): Promise<boolean> {
-    await this.logWarning(
-      'Checking JSON validity using `shopify theme check -c json`',
-    );
+    await this.logWarning('Checking JSON validity using `shopify theme check`');
     try {
-      // Execute "shopify theme check -c json" command and get the output
-      await execAsync('shopify theme check -c json -o json');
+      // Execute "shopify theme check" command and get the output as JSON.
+      await execAsync('shopify theme check  -o json');
       await this.logSuccess('JSON files are valid.');
     } catch (error: any) {
       const { stdout, stderr } = error;
       // The JSON is only the first line of the output.
       const json = stdout.split('\n').slice(0, 1).join('');
-      let result = [];
+      let result: ThemeCheckResult[] = [];
       if (json.trim() != '') {
         try {
-          result = JSON.parse(json);
+          const rawResult = JSON.parse(json) as ThemeCheckResult[];
+          // Keep only the JSON files with errors
+          result = rawResult
+            .filter((item) => item.errorCount > 0)
+            .filter((item) => item.path.endsWith('.json'));
         } catch (error) {
           await this.logError(
             'The JSON output is not valid. Is theme-check installed?',
@@ -944,10 +963,12 @@ export class GitMerger {
 
       // Create a list of paths with errors
       if (result.length > 0) {
-        const errorPaths = result.map((item: any) => {
-          const offenses = item.offenses.map((offense: any) => {
-            return `${offense.start_row}:${offense.start_column} - ${offense.message}`;
-          });
+        const errorPaths = result.map((item: ThemeCheckResult) => {
+          const offenses = item.offenses.map(
+            (offense: ThemeCheckResultOffense) => {
+              return `${offense.start_row}:${offense.start_column} - ${offense.message}`;
+            },
+          );
           return `  - ${item.path} (${offenses.join(', ')})`;
         });
 

@@ -199,15 +199,6 @@ jobs:
         with:
           node-version: 18
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.2
-          bundler: 'latest'
-
-      - name: Install Ruby dependencies
-        run: |
-          gem install theme-check
-
       - name: Get npm cache directory
         id: npm-cache-dir
         shell: bash
