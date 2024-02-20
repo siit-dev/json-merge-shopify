@@ -42,6 +42,7 @@ export interface GitMergerOptions {
   exitIfNoExistingDeployment?: boolean;
   preferred?: 'ours' | 'theirs' | null;
   checkJsonValidity?: boolean;
+  failIfThemeCheckMissing?: boolean;
   commitMessage?: string;
   createNewFiles?: boolean;
   ancestorIdentifier?: AncestorIdentifier | null;
@@ -67,6 +68,7 @@ export const defaultGitMergerOptions: Required<GitMergerOptions> = {
   productionBranch: 'production',
   preferred: 'theirs',
   checkJsonValidity: true,
+  failIfThemeCheckMissing: true,
   commitMessage:
     '[AUTOMATED] Update JSON files from `#liveMirror#` branch: #files#',
   formatter: null,
