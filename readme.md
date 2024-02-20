@@ -199,6 +199,11 @@ jobs:
         with:
           node-version: 18
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.3
+          bundler: 'latest'
+
       - name: Get npm cache directory
         id: npm-cache-dir
         shell: bash
