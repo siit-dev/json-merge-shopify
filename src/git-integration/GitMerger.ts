@@ -682,6 +682,10 @@ export class GitMerger {
 
     // Skip identical files
     if (JSON.stringify(ours) === JSON.stringify(theirs)) {
+      if (this.verbose) {
+        this.logInfo(`Files are identical for ${file}. Skipping merge.`);
+      }
+
       return {
         hasConflict: false,
         isMerged: false,
@@ -777,10 +781,21 @@ export class GitMerger {
       );
     }
 
-    const base = this.sortCommitsByDate(lastMerge, lastDeploy);
+    const base = lastMerge
+      ? this.sortCommitsByDate(lastMerge, lastDeploy)
+      : null;
     if (!base) {
       await this.logWarning(`Could not find the base for ${file}.`);
-      return null;
+
+      const latestLiveMirrorCommit = await this.getLatestLiveMirrorCommit();
+      if (!latestLiveMirrorCommit) {
+        return null;
+      }
+
+      await this.logWarning(
+        `Using latest live mirror commit as base for ${file}: ${latestLiveMirrorCommit}`,
+      );
+      return latestLiveMirrorCommit;
     }
 
     if (this.verbose) {
@@ -896,6 +911,27 @@ export class GitMerger {
       (await this.getLastProductionDeployCommit(file)) ||
       (await this.getMostRecentCommonCommit(file))
     );
+  }
+
+  /**
+   * Get the "head" commit for the "live-mirror" branch.
+   */
+  async getLatestLiveMirrorCommit() {
+    try {
+      return (
+        await this.git.raw([
+          'rev-parse',
+          `${this.maybeGetOriginPrefix()}${this.liveMirrorBranch}`,
+        ])
+      )
+        .toString()
+        .trim();
+    } catch (error) {
+      this.logWarning(
+        'Error while getting the last live mirror commit: ' + error,
+      );
+      return null;
+    }
   }
 
   sortCommitsByDate(
