@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as JSON5 from 'json5';
 
 export const getFixture = (folder: string, file: string, parseJson = true) => {
   const currentFolder = path.dirname(__dirname);
@@ -7,7 +8,7 @@ export const getFixture = (folder: string, file: string, parseJson = true) => {
     `${currentFolder}/fixtures/${folder}/${file}`,
     'utf8',
   );
-  return parseJson ? JSON.parse(source) : source;
+  return parseJson ? JSON5.parse(source) : source;
 };
 
 export const getFixtures = (

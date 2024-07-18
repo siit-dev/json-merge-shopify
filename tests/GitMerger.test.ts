@@ -6,6 +6,7 @@ let git: SimpleGit;
 const gitRoot = process.cwd() + '/tests/fixtures/git';
 import * as fs from 'fs';
 import { getFixtures } from './utils/get-fixtures';
+import * as JSON5 from 'json5';
 
 beforeEach(async () => {
   const { base, ours, theirs, expected } = getFixtures('merger/object-2');
@@ -210,11 +211,11 @@ it('merges correctly data from live-mirror (preferred: theirs)', async () => {
   expect(lastCommit?.message).toContain('`live-mirror`');
   expect(lastCommit?.message).toContain('templates/page.json');
   expect(lastCommit?.message).toContain('templates/page.alt.json');
-  const currentContent = JSON.parse(
+  const currentContent = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page.json', 'utf-8'),
   );
   expect(JSON.stringify(currentContent)).toBe(JSON.stringify(expected));
-  const currentContent2 = JSON.parse(
+  const currentContent2 = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page.alt.json', 'utf-8'),
   );
   expect(JSON.stringify(currentContent2)).toBe(JSON.stringify(theirs));
@@ -251,11 +252,11 @@ it('merges correctly data from live-mirror (preferred: ours)', async () => {
   expect(lastCommit?.message).toContain('`live-mirror`');
   expect(lastCommit?.message).toContain('templates/page.json');
   expect(lastCommit?.message).toContain('templates/page.alt.json');
-  const currentContent = JSON.parse(
+  const currentContent = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page.json', 'utf-8'),
   );
   expect(JSON.stringify(currentContent)).toBe(JSON.stringify(expected));
-  const currentContent2 = JSON.parse(
+  const currentContent2 = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page.alt.json', 'utf-8'),
   );
   expect(JSON.stringify(currentContent2)).toBe(JSON.stringify(theirs));
@@ -340,7 +341,7 @@ it.each(['ours', 'theirs'])(
     expect(results.hasCommitted).toBe(true);
     expect(results.mergedFiles).toContain('templates/page-2.json');
 
-    const page2 = JSON.parse(
+    const page2 = JSON5.parse(
       fs.readFileSync(gitRoot + '/templates/page-2.json', 'utf-8'),
     );
     expect(page2).toMatchObject(page2Content);
@@ -383,7 +384,7 @@ it.each(['ours', 'theirs'])(
     expect(results.hasCommitted).toBe(true);
     expect(results.mergedFiles).toContain('templates/page-3.json');
 
-    const page3 = JSON.parse(
+    const page3 = JSON5.parse(
       fs.readFileSync(gitRoot + '/templates/page-3.json', 'utf-8'),
     );
     expect(page3).toMatchObject(page3Content);
@@ -412,7 +413,7 @@ it('merges correctly data when both `main` and `live-mirror` have changes', asyn
     gitRoot + '/templates/page-2.json',
     JSON.stringify(page2Content),
   );
-  const existing = JSON.parse(
+  const existing = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page.json', 'utf-8'),
   );
   existing.order.reverse();
@@ -431,7 +432,7 @@ it('merges correctly data when both `main` and `live-mirror` have changes', asyn
     gitRoot + '/templates/page-3.json',
     JSON.stringify(page3Content),
   );
-  const existing2 = JSON.parse(
+  const existing2 = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page.json', 'utf-8'),
   );
   existing2.sections[Object.keys(existing2.sections)[0]].name = 'test';
@@ -456,7 +457,7 @@ it('merges correctly data when both `main` and `live-mirror` have changes', asyn
   expect(lastCommit?.message).toContain('`live-mirror`');
   expect(lastCommit?.message).toContain('templates/page.json');
   expect(lastCommit?.message).toContain('templates/page.alt.json');
-  const currentContent = JSON.parse(
+  const currentContent = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page.json', 'utf-8'),
   );
   expect(currentContent.order).toMatchObject(existing.order);
@@ -467,7 +468,7 @@ it('merges correctly data when both `main` and `live-mirror` have changes', asyn
   expect(() =>
     fs.readFileSync(gitRoot + '/templates/page.ignored-a.json', 'utf-8'),
   ).toThrow('no such file');
-  const page2 = JSON.parse(
+  const page2 = JSON5.parse(
     fs.readFileSync(gitRoot + '/templates/page-2.json', 'utf-8'),
   );
   expect(page2).toMatchObject(page2Content);

@@ -14,6 +14,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import chalk from 'chalk';
 const execAsync = promisify(exec);
+import * as JSON5 from 'json5';
 
 export type ThemeCheckResultOffense = {
   check: string;
@@ -64,7 +65,7 @@ export interface GitMergerOptions {
   commitMessage?: string;
   createNewFiles?: boolean;
   ancestorIdentifier?: AncestorIdentifier | null;
-  formatter?: ((json: string, path: string) => string) | null;
+  formatter?: ((json: string, path: string) => Promise<string>) | null;
   logger?: Logger | null;
   verbose?: boolean;
 }
@@ -114,7 +115,7 @@ export class GitMerger {
   liveMirrorBranch: string;
   checkJsonValidity: boolean;
   failIfThemeCheckMissing: boolean;
-  formatter: (json: string, path: string) => string;
+  formatter: (json: string, path: string) => Promise<string>;
   commitMessage: string;
   preferred: 'ours' | 'theirs';
   exitIfNoExistingDeployment: boolean;
@@ -250,7 +251,7 @@ export class GitMerger {
 
     if (configFile.endsWith('.json')) {
       this.logInfo('Loading config file (JSON): ' + configFile);
-      config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+      config = JSON5.parse(fs.readFileSync(configFile, 'utf8'));
     }
 
     return config as GitMergerOptions | null;
@@ -504,7 +505,7 @@ export class GitMerger {
     let exists = false;
     let content = null;
     try {
-      content = JSON.parse(await this.git.show([`${commitOrBranch}:${file}`]));
+      content = JSON5.parse(await this.git.show([`${commitOrBranch}:${file}`]));
       exists = true;
     } catch (error) {
       if (displayWarning) {
@@ -538,7 +539,7 @@ export class GitMerger {
    * @param content
    */
   async saveAndCommitJsonFile(file: string, content: any): Promise<void> {
-    const formatted = this.formatter(JSON.stringify(content), file);
+    const formatted = await this.formatter(JSON.stringify(content), file);
     fs.writeFileSync(path.resolve(this.gitRoot, file), formatted);
     await this.git.add(file);
   }
@@ -938,7 +939,7 @@ export class GitMerger {
       let result: ThemeCheckResult[] = [];
       if (json.trim() != '') {
         try {
-          const rawResult = JSON.parse(json) as ThemeCheckResult[];
+          const rawResult = JSON5.parse(json) as ThemeCheckResult[];
           // Keep only the JSON files with errors that match the glob patterns
           result = rawResult
             .filter((item) => item.errorCount > 0)

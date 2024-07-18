@@ -1,6 +1,7 @@
 import { sync } from 'glob';
 import { readFileSync, writeFileSync } from 'fs';
 import jsonFormatter from './formatJson';
+import * as JSON5 from 'json5';
 
 // Get the glob patterns from the command line arguments - e.g. "npm run format-json -- templates/*.json locales/*.json config/*.json"
 let globPatterns = process.argv.slice(2);
@@ -27,7 +28,7 @@ const files: string[] = globPatterns.reduce(
 files.forEach((file) => {
   try {
     const source = readFileSync(file, 'utf8');
-    const formatted = jsonFormatter(JSON.parse(source));
+    const formatted = jsonFormatter(JSON5.parse(source));
     writeFileSync(file, formatted, 'utf8');
     console.log(`Formatted ${file}...`);
   } catch (e) {
