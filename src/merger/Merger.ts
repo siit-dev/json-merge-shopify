@@ -269,6 +269,26 @@ export class Merger {
     // Shopify checks.
     const currentKey = path[path.length - 1];
 
+    // Make sure we don't keep missing sections.
+    if (currentKey === 'order') {
+      const parent = this.getParentElementForPath(this.ours, path);
+      if (
+        parent &&
+        typeof parent === 'object' &&
+        parent.hasOwnProperty('sections')
+      ) {
+        const sections = parent.sections;
+        for (let i = 0; i < resultArray.length; i++) {
+          const sectionId = resultArray[i];
+
+          // If the block doesn't exist, remove it from the array.
+          if (!sections.hasOwnProperty(sectionId)) {
+            resultArray.splice(i, 1);
+          }
+        }
+      }
+    }
+
     // Make sure we don't keep missing blocks.
     if (currentKey === 'block_order') {
       const parent = this.getParentElementForPath(this.ours, path);
