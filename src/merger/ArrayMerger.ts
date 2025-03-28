@@ -143,8 +143,8 @@ export class ArrayMerger {
     return typeof position === 'object' && position != null
       ? position.similarity
       : position !== null
-        ? 1
-        : null;
+      ? 1
+      : null;
   }
 
   private getNextVariants(
