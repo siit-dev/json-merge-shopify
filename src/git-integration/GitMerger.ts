@@ -79,7 +79,12 @@ export interface GitMergerResult {
 }
 
 export const defaultGitMergerOptions: Required<GitMergerOptions> = {
-  jsonPaths: ['templates/**/*.json', 'locales/*.json', 'config/*.json'],
+  jsonPaths: [
+    'templates/**/*.json',
+    'locales/*.json',
+    'config/*.json',
+    'sections/**/*.json',
+  ],
   gitRoot: null,
   createCommit: false,
   mainBranch: 'main',

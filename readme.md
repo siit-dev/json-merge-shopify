@@ -46,7 +46,7 @@ To use it, import the `GitMerger` class. It has the following options:
 - `mainBranch`: the name of the main branch (default: `main`)
 - `liveMirrorBranch`: the name of the live mirror branch (default: `live-mirror`)
 - `productionBranch`: the name of the production branch (default: `production`)
-- `commitMessage`: the commit message to use (default: ` [AUTOMATED] Update JSON files from ``#liveMirror#`` branch: #files# `)
+- `commitMessage`: the commit message to use (default: `[AUTOMATED] Update JSON files from ``#liveMirror#`` branch: #files#`)
 - `preferred`: the preferred strategy for the merger (default: `theirs`)
 - `jsonPaths`: the paths to the JSON files to merge (default: `['templates/**/*.json', 'locales/*.json', 'config/*.json']`)
 - `exitIfNoExistingDeployment` (default: `true`): whether or not to exit if there is no commit on the `production` branch
@@ -136,6 +136,7 @@ jobs:
         with:
           files: |
             templates/**/*.json
+            sections/**/*.json
             locales/**/*.json
             config/*.json
 
