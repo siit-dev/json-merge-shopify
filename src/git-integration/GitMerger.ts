@@ -469,6 +469,19 @@ export class GitMerger {
             )} because it is .gitignored.`,
           );
         }
+      } else if (
+        file.endsWith('.schema.json') ||
+        file.endsWith('_schema.json')
+      ) {
+        // Ignore the ".schema.json" and "_schema.json" files.
+        ignoredJsons.push(file);
+        if (this.verbose) {
+          await this.logInfo(
+            `Ignoring ${this.removeGitRootPrefix(
+              filename,
+            )} because it is a schema file.`,
+          );
+        }
       } else {
         valid.push(file);
       }
