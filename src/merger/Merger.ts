@@ -6,6 +6,8 @@ export interface MergerConstructorOptions {
   ancestor: any;
   filename?: string;
   preferred?: PreferredSide;
+  /** Whether deletions are allowed in "our" side. */
+  deletionsAllowed?: boolean;
 }
 export type PreferredSide = 'ours' | 'theirs' | null;
 export type Path = string[];
@@ -26,6 +28,7 @@ export class Merger {
   ancestor: any;
   filename?: string | null;
   preferred?: PreferredSide;
+  deletionsAllowed: boolean = true;
   _hasConflicts: boolean = false;
 
   constructor({
@@ -34,12 +37,14 @@ export class Merger {
     ancestor,
     filename,
     preferred,
+    deletionsAllowed,
   }: MergerConstructorOptions) {
     this.ours = ours;
     this.theirs = theirs;
     this.ancestor = ancestor;
     this.filename = filename || null;
     this.preferred = preferred || 'theirs';
+    this.deletionsAllowed = deletionsAllowed ?? true;
   }
 
   /**
@@ -103,7 +108,7 @@ export class Merger {
         } else {
           // The value was removed on one side but not the other
           // If it was removed on their side, take theirs. Otherwise, keep ours.
-          if (!theirValueExists) {
+          if (!theirValueExists && this.deletionsAllowed) {
             ourNode[key] = theirValue;
           }
         }
@@ -130,13 +135,17 @@ export class Merger {
       const ancestorValueIsArray = Array.isArray(ancestorValue);
       if (ourValueIsArray || theirValueIsArray) {
         if (ourValueIsArray != theirValueIsArray) {
-          if (ancestorValueIsArray === ourValueIsArray) {
-            // If they removed the array and we didn't, we remove it too
+          // If they removed the array and we didn't, we remove it too
+          if (
+            ancestorValueIsArray === ourValueIsArray &&
+            this.deletionsAllowed
+          ) {
             ourNode[key] = theirValue;
             continue;
           }
+
+          // If we removed the array and they didn't, we remove it too
           if (ancestorValueIsArray === theirValueIsArray) {
-            // If we removed the array and they didn't, we remove it too
             ourNode[key] = ourValue;
             continue;
           }
@@ -228,6 +237,7 @@ export class Merger {
         theirs: theirArray,
         preferred: this.preferred,
         filename: this.filename,
+        deletionsAllowed: this.deletionsAllowed,
         path,
       });
 

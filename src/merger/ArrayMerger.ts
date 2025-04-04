@@ -7,6 +7,7 @@ export interface ArrayMergerOptions {
   preferred?: SourceType | null;
   filename?: string | null;
   path?: string[];
+  deletionsAllowed?: boolean;
 }
 
 export interface ArrayMergerVariant {
@@ -37,6 +38,7 @@ export class ArrayMerger {
   path: string[] | null;
   variants: ArrayMergerVariant[] | null = null;
   objectPossiblePositions: UnionArrayElementResult[] | null = null;
+  deletionsAllowed: boolean = true;
 
   constructor({
     base,
@@ -45,6 +47,7 @@ export class ArrayMerger {
     preferred,
     filename,
     path,
+    deletionsAllowed,
   }: ArrayMergerOptions) {
     this.base = base;
     this.ours = ours;
@@ -53,6 +56,7 @@ export class ArrayMerger {
     this.filename = filename || null;
     this.path = path || [];
     this.union = this.getUnion();
+    this.deletionsAllowed = deletionsAllowed ?? true;
   }
 
   private getUnion(): any[] {
@@ -265,7 +269,8 @@ export class ArrayMerger {
       // Deleted object.
       if (
         position.basePosition !== null &&
-        (position.oursPosition === null || position.theirsPosition === null)
+        (position.oursPosition === null ||
+          (position.theirsPosition === null && this.deletionsAllowed))
       ) {
         return;
       }
