@@ -129,6 +129,7 @@ export class GitMerger {
   logger: Logger | null;
   verbose: boolean;
   createNewFiles: boolean;
+  lastMergedFiles: string[] | null = null;
 
   /**
    * Create a new GitMerger instance.
@@ -300,6 +301,7 @@ export class GitMerger {
       // 5. Check if there are committed changes
       status = await this.git.status();
       if (status.files.length == 0) {
+        this.lastMergedFiles = [];
         await this.logSuccess('No changes to commit');
         return {
           hasCommitted: false,
@@ -322,6 +324,7 @@ export class GitMerger {
       }
 
       // 6. Commit the changes
+      this.lastMergedFiles = mergedFiles;
       const hasCommitted = await this.maybeCreateCommit(mergedFiles);
 
       return {
@@ -1003,6 +1006,26 @@ export class GitMerger {
       }
     }
 
+    return true;
+  }
+
+  /**
+   * Create a commit for the files merged in the previous `run()` call.
+   * Useful when `createCommit` was set to `false` and you want to perform
+   * additional steps before committing.
+   */
+  async commit(): Promise<boolean> {
+    if (!Array.isArray(this.lastMergedFiles)) {
+      throw new Error(
+        'No merged files found. Please run the merger first (via `run()`).',
+      );
+    }
+
+    const message = this.commitMessage
+      .replace('#liveMirror#', this.liveMirrorBranch)
+      .replace('#files#', this.lastMergedFiles.join(', '));
+    await this.logSuccess('Committing the changes');
+    await this.git.commit(message);
     return true;
   }
 
