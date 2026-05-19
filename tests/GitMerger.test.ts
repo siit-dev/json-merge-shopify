@@ -295,6 +295,48 @@ it("doesn't run if there are uncommitted changes", async () => {
   expect(results.error?.message).toContain('uncommitted changes');
 });
 
+it('uses staged files in commit message placeholders', async () => {
+  const merger = new GitMerger({
+    gitRoot,
+    runLocallyOnly: true,
+    exitIfNoExistingDeployment: false,
+    checkJsonValidity: false,
+    createCommit: true,
+    commitMessage: '[AUTOMATED] Merged #files#',
+  });
+
+  const gitCommitMock = jest.fn().mockResolvedValue({});
+  const gitStatusMock = jest
+    .fn()
+    .mockResolvedValueOnce({ files: [], conflicted: [] })
+    .mockResolvedValueOnce({ files: [{ path: 'templates/page.alt.json' }] });
+  const gitDiffMock = jest.fn().mockResolvedValue('templates/page.alt.json\n');
+  const gitCheckoutMock = jest.fn().mockResolvedValue(undefined);
+  (merger as any).git = {
+    status: gitStatusMock,
+    diff: gitDiffMock,
+    checkout: gitCheckoutMock,
+    commit: gitCommitMock,
+  };
+
+  jest.spyOn(merger, 'pullLiveMirrorBranch').mockResolvedValue();
+  jest.spyOn(merger, 'getAllJsons').mockResolvedValue({ valid: [], ignored: [] });
+  jest.spyOn(merger, 'checkCurrentBranch').mockResolvedValue('main');
+  jest.spyOn(merger, 'mergeJsonFiles').mockResolvedValue({
+    hasConflict: false,
+    mergedFiles: ['templates/page.json', 'templates/page.alt.json'],
+  });
+
+  await merger.run();
+
+  expect(gitCommitMock).toHaveBeenCalledWith(
+    expect.stringContaining('templates/page.alt.json'),
+  );
+  expect(gitCommitMock).not.toHaveBeenCalledWith(
+    expect.stringContaining('templates/page.json'),
+  );
+});
+
 it.each(['ours', 'theirs'])(
   'handles newly added files on live-mirror (preferred: %s)',
   async (preferredValue) => {

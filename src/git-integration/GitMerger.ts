@@ -327,8 +327,9 @@ export class GitMerger {
       }
 
       // 6. Commit the changes
-      this.lastMergedFiles = mergedFiles;
-      const hasCommitted = await this.maybeCreateCommit(mergedFiles);
+      const filesToCommit = await this.getStagedFiles();
+      this.lastMergedFiles = filesToCommit;
+      const hasCommitted = await this.maybeCreateCommit(filesToCommit);
 
       return {
         hasCommitted,
@@ -1030,6 +1031,14 @@ export class GitMerger {
     await this.logSuccess('Committing the changes');
     await this.git.commit(message);
     return true;
+  }
+
+  async getStagedFiles(): Promise<string[]> {
+    const staged = await this.git.diff(['--cached', '--name-only']);
+    return staged
+      .split('\n')
+      .map((file) => file.trim())
+      .filter((file) => file.length > 0);
   }
 
   /**
