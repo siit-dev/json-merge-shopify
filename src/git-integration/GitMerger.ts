@@ -199,8 +199,11 @@ export class GitMerger {
     if (formatter) {
       this.formatter = formatter;
     } else {
-      this.formatter = (json: string, path: string) => {
-        return prettier.format(json, { filepath: path });
+      this.formatter = async (json: string, file: string) => {
+        const filePath = path.resolve(this.gitRoot, file);
+        const config =
+          (await prettier.resolveConfig(filePath, { useCache: false })) || {};
+        return prettier.format(json, { ...config, filepath: filePath });
       };
     }
 

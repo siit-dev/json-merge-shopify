@@ -473,3 +473,35 @@ it('merges correctly data when both `main` and `live-mirror` have changes', asyn
   );
   expect(page2).toMatchObject(page2Content);
 });
+
+it('applies the target repo prettier config when using the default formatter', async () => {
+  fs.writeFileSync(
+    gitRoot + '/.prettierrc',
+    JSON.stringify({
+      bracketSpacing: false,
+    }),
+  );
+
+  const merger = new GitMerger({
+    gitRoot,
+    runLocallyOnly: true,
+    exitIfNoExistingDeployment: false,
+    checkJsonValidity: false,
+    createCommit: false,
+  });
+
+  await merger.saveAndCommitJsonFile('templates/prettier-config.json', {
+    section: {
+      title: 'This title forces multiline formatting',
+    },
+  });
+
+  const saved = fs.readFileSync(
+    gitRoot + '/templates/prettier-config.json',
+    'utf-8',
+  );
+
+  expect(saved).toBe(
+    '{"section": {"title": "This title forces multiline formatting"}}\n',
+  );
+});
