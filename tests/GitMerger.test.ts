@@ -1,9 +1,11 @@
 'use strict';
 
-import simpleGit, { SimpleGit } from 'simple-git';
+import simpleGit, { GitConfigScope, SimpleGit } from 'simple-git';
 import GitMerger from '../src/git-integration/GitMerger';
+import * as os from 'os';
+import * as path from 'path';
 let git: SimpleGit;
-const gitRoot = process.cwd() + '/tests/fixtures/git';
+let gitRoot: string;
 import * as fs from 'fs';
 import { getFixtures } from './utils/get-fixtures';
 import * as JSON5 from 'json5';
@@ -11,11 +13,8 @@ import * as JSON5 from 'json5';
 beforeEach(async () => {
   const { base, ours, theirs, expected } = getFixtures('merger/object-2');
 
-  // Create the folder
-  if (fs.existsSync(gitRoot)) {
-    fs.rmSync(gitRoot, { recursive: true });
-  }
-  fs.mkdirSync(gitRoot);
+  // Create the folder in a temp directory outside the project repo
+  gitRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'json-merge-test-'));
 
   git = simpleGit({
     baseDir: gitRoot,
@@ -25,8 +24,13 @@ beforeEach(async () => {
 
   // Initialize git repo
   await git.init();
-  await git.addConfig('user.name', 'Test User');
-  await git.addConfig('user.email', 'testuser@test.com');
+  await git.addConfig('user.name', 'Test User', false, GitConfigScope.local);
+  await git.addConfig(
+    'user.email',
+    'testuser@test.com',
+    false,
+    GitConfigScope.local,
+  );
   fs.writeFileSync(gitRoot + '/file.txt', 'Hello World');
   await git.add('.');
   await git.commit('Initial commit');
@@ -320,7 +324,9 @@ it('uses staged files in commit message placeholders', async () => {
   };
 
   jest.spyOn(merger, 'pullLiveMirrorBranch').mockResolvedValue();
-  jest.spyOn(merger, 'getAllJsons').mockResolvedValue({ valid: [], ignored: [] });
+  jest
+    .spyOn(merger, 'getAllJsons')
+    .mockResolvedValue({ valid: [], ignored: [] });
   jest.spyOn(merger, 'checkCurrentBranch').mockResolvedValue('main');
   jest.spyOn(merger, 'mergeJsonFiles').mockResolvedValue({
     hasConflict: false,
