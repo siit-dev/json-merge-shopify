@@ -130,6 +130,7 @@ export class GitMerger {
   verbose: boolean;
   createNewFiles: boolean;
   lastMergedFiles: string[] | null = null;
+  private lastSourceCommit: string | null = null;
 
   /**
    * Create a new GitMerger instance.
@@ -267,6 +268,7 @@ export class GitMerger {
   }
 
   async run(): Promise<GitMergerResult> {
+    this.lastSourceCommit = null;
     // 0. Do we have uncommitted changes?
     let status = await this.git.status();
     if (status.files.length > 0) {
@@ -280,6 +282,9 @@ export class GitMerger {
     try {
       // 1. Pull the latest changes from the remote "live-mirror" branch
       await this.pullLiveMirrorBranch();
+      this.lastSourceCommit = (
+        await this.git.revparse([this.liveMirrorBranch])
+      ).trim();
 
       // 2. Make a list of all JSON files.
       const { valid: allJsons } = await this.getAllJsons();
@@ -1025,9 +1030,7 @@ export class GitMerger {
       );
     }
 
-    const message = this.commitMessage
-      .replace('#liveMirror#', this.liveMirrorBranch)
-      .replace('#files#', this.lastMergedFiles.join(', '));
+    const message = await this.buildCommitMessage(this.lastMergedFiles);
     await this.logSuccess('Committing the changes');
     await this.git.commit(message);
     return true;
@@ -1046,10 +1049,8 @@ export class GitMerger {
    */
   async maybeCreateCommit(mergedFiles: string[] = []): Promise<boolean> {
     const createCommit = this.createCommit;
-    const message = this.commitMessage
-      .replace('#liveMirror#', this.liveMirrorBranch)
-      .replace('#files#', mergedFiles.join(', '));
     if (createCommit) {
+      const message = await this.buildCommitMessage(mergedFiles);
       await this.logSuccess('Committing the changes');
       await this.git.commit(message);
       return true;
@@ -1058,6 +1059,123 @@ export class GitMerger {
         'Not committing the changes (not requested to do so).',
       );
       return false;
+    }
+  }
+
+  private async buildCommitMessage(mergedFiles: string[]): Promise<string> {
+    const message = this.commitMessage
+      .replace('#liveMirror#', this.liveMirrorBranch)
+      .replace('#files#', mergedFiles.join(', '));
+
+    if (!this.lastSourceCommit || mergedFiles.length === 0) return message;
+
+    try {
+      const previousMessage = await this.git.raw([
+        'log',
+        this.mainBranch,
+        '-n',
+        '1',
+        '--format=%B',
+        '--fixed-strings',
+        '--grep=Shopify-Source-Commit:',
+      ]);
+      const marker = previousMessage.match(
+        /^Shopify-Source-Commit: ([0-9a-f]{40,64})\r?$/m,
+      );
+      let range: string[];
+
+      if (previousMessage.includes('Shopify-Source-Commit:')) {
+        if (!marker) {
+          await this.logWarning(
+            'Invalid Shopify source commit marker; omitting attribution.',
+          );
+          return message;
+        }
+        try {
+          await this.git.raw([
+            'merge-base',
+            '--is-ancestor',
+            marker[1],
+            this.lastSourceCommit,
+          ]);
+        } catch {
+          await this.logWarning(
+            'Shopify source commit is no longer reachable; omitting attribution.',
+          );
+          return message;
+        }
+        range = [`${marker[1]}..${this.lastSourceCommit}`];
+      } else {
+        const lastAutomatedDate = (
+          await this.git.raw([
+            'log',
+            this.mainBranch,
+            '-n',
+            '1',
+            '--format=%cI',
+            '--fixed-strings',
+            '--grep=[AUTOMATED]',
+          ])
+        ).trim();
+        if (lastAutomatedDate) {
+          range = [
+            `--since=${lastAutomatedDate}`,
+            this.lastSourceCommit,
+            '--not',
+            this.mainBranch,
+          ];
+        } else {
+          const commonCommit = (
+            await this.git.raw([
+              'merge-base',
+              this.mainBranch,
+              this.lastSourceCommit,
+            ])
+          ).trim();
+          range = [`${commonCommit}..${this.lastSourceCommit}`];
+        }
+      }
+
+      const history = await this.git.raw([
+        'log',
+        '--reverse',
+        '--format=%H%x00%B%x00%x00',
+        ...range,
+        '--',
+        ...mergedFiles,
+      ]);
+      const editorsByShop = new Map<string, Set<string>>();
+      for (const record of history.split('\0\0')) {
+        const separator = record.indexOf('\0');
+        if (separator < 0) continue;
+        const body = record.slice(separator + 1);
+        const shop = body
+          .match(/^Committed from shop: ([^\r\n]+)\r?$/m)?.[1]
+          .trim();
+        const editor = body
+          .match(/^Theme last edited by: ([^\r\n]+)\r?$/m)?.[1]
+          .trim();
+        if (!shop || !editor) continue;
+        if (!editorsByShop.has(shop)) editorsByShop.set(shop, new Set());
+        editorsByShop.get(shop)!.add(editor);
+      }
+
+      if (editorsByShop.size === 0) return message;
+      const attribution = Array.from(
+        editorsByShop,
+        ([shop, editors]) =>
+          `Committed from shop: ${shop}\nTheme edited by: ${Array.from(
+            editors,
+          ).join(', ')}`,
+      ).join('\n\n');
+      return `${message.trimEnd()}\n\n${attribution}\n\nShopify-Source-Commit: ${
+        this.lastSourceCommit
+      }`;
+    } catch (error) {
+      await this.logWarning(
+        `Could not read Shopify commit attribution: ${error}`,
+      );
+      return message;
     }
   }
 

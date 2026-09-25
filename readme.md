@@ -46,11 +46,13 @@ To use it, import the `GitMerger` class. It has the following options:
 - `mainBranch`: the name of the main branch (default: `main`)
 - `liveMirrorBranch`: the name of the live mirror branch (default: `live-mirror`)
 - `productionBranch`: the name of the production branch (default: `production`)
-- `commitMessage`: the commit message to use (default: `[AUTOMATED] Update JSON files from ``#liveMirror#`` branch: #files#`)
+- `commitMessage`: the commit message to use (default: `[AUTOMATED] Update JSON files from ``#liveMirror#`` branch: #files#`). When Shopify commit messages provide a shop and editor, the merger appends attribution to the body and a `Shopify-Source-Commit` footer for subsequent runs.
 - `preferred`: the preferred strategy for the merger (default: `theirs`)
-- `jsonPaths`: the paths to the JSON files to merge (default: `['templates/**/*.json', 'locales/*.json', 'config/*.json']`)
+- `jsonPaths`: the paths to the JSON files to merge (default: `['templates/**/*.json', 'locales/*.json', 'config/*.json', 'sections/**/*.json']`)
 - `exitIfNoExistingDeployment` (default: `true`): whether or not to exit if there is no commit on the `production` branch
 - `checkJsonValidity` (default: `true`): whether or not to check the validity of the JSON files using `shopify theme check`
+
+When a merged Shopify commit contains both `Committed from shop:` and `Theme last edited by:`, the automated commit keeps its configured title and appends `Committed from shop: <shop>` and `Theme edited by: <editors>` to the body. Editors are deduplicated per shop. A `Shopify-Source-Commit` footer records the source branch position so later runs only consider new Shopify commits. The first run uses the time of the most recent `[AUTOMATED]` commit as a best-effort boundary. If there is no Shopify attribution, the message stays unchanged.
 
 ```javascript title="path/to/json-merger.js"
 const { GitMerger } = require('@smartimpact-it/json-merge-shopify');

@@ -7,6 +7,7 @@ import * as path from 'path';
 let git: SimpleGit;
 let gitRoot: string;
 import * as fs from 'fs';
+import { execFileSync } from 'child_process';
 import { getFixtures } from './utils/get-fixtures';
 import * as JSON5 from 'json5';
 
@@ -83,6 +84,36 @@ afterEach(async () => {
     fs.rmSync(gitRoot, { recursive: true });
   }
 });
+
+const shopifyMessage = (shop: string, editor: string): string =>
+  `Update from Shopify\n\nCommitted from shop: ${shop}\nTheme last edited by: ${editor}`;
+
+const commitSourceEdit = async (
+  file: string,
+  value: string,
+  message: string,
+  date?: string,
+): Promise<string> => {
+  await git.checkout('live-mirror');
+  fs.mkdirSync(path.dirname(path.join(gitRoot, file)), { recursive: true });
+  fs.writeFileSync(path.join(gitRoot, file), JSON.stringify({ value }));
+  await git.add(file);
+  if (date) {
+    execFileSync('git', ['commit', '-m', message], {
+      cwd: gitRoot,
+      env: { GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date },
+    });
+  } else {
+    await git.commit(message);
+  }
+  return (await git.revparse(['HEAD'])).trim();
+};
+
+const stageMainEdit = async (): Promise<void> => {
+  await git.checkout('main');
+  fs.writeFileSync(gitRoot + '/templates/page.json', '{"mainEdit":true}');
+  await git.add('templates/page.json');
+};
 
 it('can load setting from a JS file', async () => {
   const jsFile = gitRoot + '/settings.js';
@@ -321,6 +352,7 @@ it('uses staged files in commit message placeholders', async () => {
     diff: gitDiffMock,
     checkout: gitCheckoutMock,
     commit: gitCommitMock,
+    revparse: jest.fn().mockResolvedValue(''),
   };
 
   jest.spyOn(merger, 'pullLiveMirrorBranch').mockResolvedValue();
@@ -551,5 +583,214 @@ it('applies the target repo prettier config when using the default formatter', a
 
   expect(saved).toBe(
     '{"section": {"title": "This title forces multiline formatting"}}\n',
+  );
+});
+
+it('adds distinct Shopify editors for merged files and preserves a custom body', async () => {
+  await commitSourceEdit(
+    'templates/page.json',
+    'one',
+    shopifyMessage('Carnaby', 'Alice'),
+  );
+  await commitSourceEdit(
+    'templates/page.json',
+    'two',
+    shopifyMessage('Carnaby', 'Alice'),
+  );
+  await commitSourceEdit(
+    'templates/page.json',
+    'three',
+    shopifyMessage('Other', 'Bob'),
+  );
+  const sourceHead = await commitSourceEdit(
+    'locales/fr.json',
+    'unrelated',
+    shopifyMessage('Carnaby', 'Mallory'),
+  );
+  await stageMainEdit();
+
+  const merger = new GitMerger({
+    gitRoot,
+    commitMessage: '[AUTOMATED] Merge #files#\n\nExisting details',
+  });
+  merger.lastMergedFiles = ['templates/page.json'];
+  (merger as any).lastSourceCommit = sourceHead;
+  await merger.commit();
+
+  const message = (
+    await git.raw(['show', '-s', '--format=%B', 'HEAD'])
+  ).trimEnd();
+  expect(message).toBe(
+    '[AUTOMATED] Merge templates/page.json\n\nExisting details\n\n' +
+      'Committed from shop: Carnaby\nTheme edited by: Alice\n\n' +
+      'Committed from shop: Other\nTheme edited by: Bob\n\n' +
+      `Shopify-Source-Commit: ${sourceHead}`,
+  );
+});
+
+it('uses the saved Shopify source commit for a deferred commit', async () => {
+  const previousSource = await commitSourceEdit(
+    'templates/page.json',
+    'old',
+    shopifyMessage('Carnaby', 'Alice'),
+  );
+  await git.checkout('main');
+  fs.writeFileSync(gitRoot + '/file.txt', 'previous merge');
+  await git.add('file.txt');
+  await git.commit(
+    `[AUTOMATED] previous\n\nShopify-Source-Commit: ${previousSource}`,
+  );
+  const sourceHead = await commitSourceEdit(
+    'templates/page.json',
+    'new',
+    shopifyMessage('Carnaby', 'Bob'),
+  );
+  await stageMainEdit();
+
+  const merger = new GitMerger({ gitRoot, createCommit: true });
+  (merger as any).lastSourceCommit = sourceHead;
+  await merger.maybeCreateCommit(['templates/page.json']);
+
+  const message = await git.raw(['show', '-s', '--format=%B', 'HEAD']);
+  expect(message).toContain('Theme edited by: Bob');
+  expect(message).not.toContain('Alice');
+  expect(message).toContain(`Shopify-Source-Commit: ${sourceHead}`);
+});
+
+it('captures Shopify attribution during run for a later action-style commit', async () => {
+  await git.checkout('live-mirror');
+  const source = JSON5.parse(
+    fs.readFileSync(gitRoot + '/templates/page.json', 'utf-8'),
+  );
+  source.shopifyAttributionTest = true;
+  fs.writeFileSync(gitRoot + '/templates/page.json', JSON.stringify(source));
+  await git.add('templates/page.json');
+  await git.commit(shopifyMessage('Carnaby', 'Service Web'));
+  const sourceHead = (await git.revparse(['HEAD'])).trim();
+  await git.checkout('main');
+
+  const merger = new GitMerger({
+    gitRoot,
+    runLocallyOnly: true,
+    exitIfNoExistingDeployment: false,
+    checkJsonValidity: false,
+    createCommit: false,
+    createNewFiles: true,
+  });
+  const result = await merger.run();
+  expect(result.hasErrors).toBe(false);
+  await merger.commit();
+
+  const message = await git.raw(['show', '-s', '--format=%B', 'HEAD']);
+  expect(message).toContain(
+    'Committed from shop: Carnaby\nTheme edited by: Service Web',
+  );
+  expect(message).toContain(`Shopify-Source-Commit: ${sourceHead}`);
+});
+
+it('uses the last automated commit time on the first attributed run', async () => {
+  await commitSourceEdit(
+    'templates/page.json',
+    'old',
+    shopifyMessage('Carnaby', 'Alice'),
+    '2019-01-01T00:00:00Z',
+  );
+  await git.checkout('main');
+  fs.writeFileSync(gitRoot + '/file.txt', 'previous merge');
+  await git.add('file.txt');
+  execFileSync('git', ['commit', '-m', '[AUTOMATED] previous'], {
+    cwd: gitRoot,
+    env: {
+      GIT_AUTHOR_DATE: '2020-01-01T00:00:00Z',
+      GIT_COMMITTER_DATE: '2020-01-01T00:00:00Z',
+    },
+  });
+  const sourceHead = await commitSourceEdit(
+    'templates/page.json',
+    'new',
+    shopifyMessage('Carnaby', 'Bob'),
+    '2021-01-01T00:00:00Z',
+  );
+  await stageMainEdit();
+
+  const merger = new GitMerger({ gitRoot });
+  merger.lastMergedFiles = ['templates/page.json'];
+  (merger as any).lastSourceCommit = sourceHead;
+  await merger.commit();
+
+  const message = await git.raw(['show', '-s', '--format=%B', 'HEAD']);
+  expect(message).toContain('Theme edited by: Bob');
+  expect(message).not.toContain('Alice');
+});
+
+it('keeps the original message when Shopify metadata is absent', async () => {
+  const sourceHead = await commitSourceEdit(
+    'templates/page.json',
+    'new',
+    'Update from Shopify',
+  );
+  await stageMainEdit();
+
+  const merger = new GitMerger({
+    gitRoot,
+    commitMessage: '[AUTOMATED] custom',
+  });
+  merger.lastMergedFiles = ['templates/page.json'];
+  (merger as any).lastSourceCommit = sourceHead;
+  await merger.commit();
+
+  expect((await git.raw(['show', '-s', '--format=%B', 'HEAD'])).trim()).toBe(
+    '[AUTOMATED] custom',
+  );
+});
+
+it('does not attribute a commit created only by post-merge hooks', async () => {
+  const sourceHead = await commitSourceEdit(
+    'templates/page.json',
+    'new',
+    shopifyMessage('Carnaby', 'Alice'),
+  );
+  await git.checkout('main');
+  fs.writeFileSync(gitRoot + '/file.txt', 'hook change');
+  await git.add('file.txt');
+
+  const merger = new GitMerger({ gitRoot, commitMessage: '[AUTOMATED] hook' });
+  merger.lastMergedFiles = [];
+  (merger as any).lastSourceCommit = sourceHead;
+  await merger.commit();
+
+  expect((await git.raw(['show', '-s', '--format=%B', 'HEAD'])).trim()).toBe(
+    '[AUTOMATED] hook',
+  );
+});
+
+it('omits attribution when the saved Shopify source commit is unreachable', async () => {
+  await git.checkout('main');
+  fs.writeFileSync(gitRoot + '/file.txt', 'previous merge');
+  await git.add('file.txt');
+  await git.commit(
+    `[AUTOMATED] previous\n\nShopify-Source-Commit: ${'0'.repeat(40)}`,
+  );
+  const sourceHead = await commitSourceEdit(
+    'templates/page.json',
+    'new',
+    shopifyMessage('Carnaby', 'Alice'),
+  );
+  await stageMainEdit();
+
+  const merger = new GitMerger({
+    gitRoot,
+    commitMessage: '[AUTOMATED] current',
+  });
+  merger.lastMergedFiles = ['templates/page.json'];
+  (merger as any).lastSourceCommit = sourceHead;
+  const warning = jest.spyOn(merger, 'logWarning').mockResolvedValue();
+  await merger.commit();
+
+  expect((await git.raw(['show', '-s', '--format=%B', 'HEAD'])).trim()).toBe(
+    '[AUTOMATED] current',
+  );
+  expect(warning).toHaveBeenCalledWith(
+    'Shopify source commit is no longer reachable; omitting attribution.',
   );
 });
