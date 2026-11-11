@@ -4,13 +4,18 @@ import path from 'path';
 import GitMerger from '../src/git-integration/GitMerger';
 
 let root: string;
-const pathKey =
-  Object.keys(process.env).find((key) => key.toLowerCase() === 'path') ||
-  'PATH';
-let beforePath: string | undefined;
+const pathKeys = Object.keys(process.env).filter(
+  (key) => key.toLowerCase() === 'path',
+);
+let beforePaths: Record<string, string | undefined>;
+const setPath = (value: string) => {
+  for (const key of pathKeys) process.env[key] = value;
+};
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), 'merge-check-'));
-  beforePath = process.env[pathKey];
+  beforePaths = Object.fromEntries(
+    pathKeys.map((key) => [key, process.env[key]]),
+  );
   writeFileSync(
     path.join(root, 'fixture.cjs'),
     "process.stdout.write(process.env.CHECK_REPORT || ''); process.stderr.write('diagnostics on stderr'); process.exit(Number(process.env.CHECK_EXIT || '0'));\n",
@@ -25,10 +30,10 @@ beforeEach(() => {
         )}" "$@"\n`,
     { mode: 0o755 },
   );
-  process.env[pathKey] = root + path.delimiter + beforePath;
+  setPath(root + path.delimiter + beforePaths[pathKeys[0]]);
 });
 afterEach(() => {
-  process.env[pathKey] = beforePath;
+  for (const key of pathKeys) process.env[key] = beforePaths[key];
   delete process.env.CHECK_REPORT;
   delete process.env.CHECK_EXIT;
   rmSync(root, { recursive: true, force: true });
@@ -117,7 +122,7 @@ test('missing CLI opt-out is portable while the default still fails', async () =
   unlinkSync(
     path.join(root, process.platform === 'win32' ? 'shopify.cmd' : 'shopify'),
   );
-  process.env[pathKey] = root;
+  setPath(root);
   expect(await merger(false).validateJson([])).toBe(true);
   await expect(merger(true).validateJson([])).rejects.toThrow();
 });

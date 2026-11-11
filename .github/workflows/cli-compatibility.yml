@@ -4,6 +4,7 @@ jobs:
   theme-check:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
         cli: ['3.94.3', '4.9.5', '5.0.1']

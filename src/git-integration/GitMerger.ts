@@ -1076,7 +1076,10 @@ export class GitMerger {
     const root = this.gitRoot || process.cwd();
     const canonical = (file: string) => {
       const absolute = path.resolve(root, file);
-      return fs.existsSync(absolute) ? fs.realpathSync(absolute) : absolute;
+      const resolved = fs.existsSync(absolute)
+        ? fs.realpathSync(absolute)
+        : absolute;
+      return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
     };
     const selected = new Set(paths.map(canonical));
     const errors = issues.filter(
