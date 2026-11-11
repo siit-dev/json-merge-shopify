@@ -259,3 +259,11 @@ jobs:
 ### Github Action
 
 You can also use the [`siit-dev/merge-json-shopify-branches` pre-built Github Action](https://github.com/siit-dev/merge-json-shopify-branches).
+
+## Shopify CLI compatibility
+
+Version 1.0.42 accepts the complete legacy (CLI 3.94.3/4.9.5) and flat
+(CLI 5.0.1) Theme Check JSON reports. Matching JSON-file errors block merging;
+unrelated theme issues retain the existing policy. Malformed reports and tool
+failures throw instead of being treated as successful validation. No CLI is
+installed automatically.

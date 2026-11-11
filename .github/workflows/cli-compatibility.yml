@@ -1,0 +1,22 @@
+name: Shopify CLI compatibility
+on: [pull_request, workflow_dispatch]
+jobs:
+  theme-check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        cli: ['3.94.3', '4.9.5', '5.0.1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm install -g @shopify/cli@${{ matrix.cli }}
+      - run: npm test -- --runInBand tests/ThemeCheck.test.ts tests/InstalledThemeCheck.test.ts
+        env:
+          SHOPIFY_CLI_MATRIX_BIN: shopify
+          SHOPIFY_CLI_NO_ANALYTICS: '1'
+          CI: '1'
