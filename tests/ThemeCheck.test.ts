@@ -1,22 +1,34 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'fs';
+import { mkdtempSync, writeFileSync, rmSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import GitMerger from '../src/git-integration/GitMerger';
 
 let root: string;
+const pathKey =
+  Object.keys(process.env).find((key) => key.toLowerCase() === 'path') ||
+  'PATH';
 let beforePath: string | undefined;
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), 'merge-check-'));
-  beforePath = process.env.PATH;
+  beforePath = process.env[pathKey];
   writeFileSync(
-    path.join(root, 'shopify'),
-    `#!${process.execPath}\nprocess.stdout.write(process.env.CHECK_REPORT || '');\nprocess.stderr.write('diagnostics on stderr');\nprocess.exit(Number(process.env.CHECK_EXIT || '0'));\n`,
+    path.join(root, 'fixture.cjs'),
+    "process.stdout.write(process.env.CHECK_REPORT || ''); process.stderr.write('diagnostics on stderr'); process.exit(Number(process.env.CHECK_EXIT || '0'));\n",
+  );
+  writeFileSync(
+    path.join(root, process.platform === 'win32' ? 'shopify.cmd' : 'shopify'),
+    process.platform === 'win32'
+      ? `@echo off\r\n"${process.execPath}" "%~dp0fixture.cjs" %*\r\n`
+      : `#!/bin/sh\n"${process.execPath}" "${path.join(
+          root,
+          'fixture.cjs',
+        )}" "$@"\n`,
     { mode: 0o755 },
   );
-  process.env.PATH = root + path.delimiter + beforePath;
+  process.env[pathKey] = root + path.delimiter + beforePath;
 });
 afterEach(() => {
-  process.env.PATH = beforePath;
+  process.env[pathKey] = beforePath;
   delete process.env.CHECK_REPORT;
   delete process.env.CHECK_EXIT;
   rmSync(root, { recursive: true, force: true });
@@ -44,6 +56,8 @@ test.each(['legacy', 'v5'])(
             {
               path: i.filePath,
               errorCount: 1,
+              warningCount: 0,
+              infoCount: 0,
               offenses: [
                 {
                   check: i.check,
@@ -97,4 +111,58 @@ test('legacy empty reports and trailing agent hints are accepted', async () => {
 test('a failed report with no issues is rejected even with exit zero', async () => {
   process.env.CHECK_REPORT = JSON.stringify({ valid: false, issues: [] });
   await expect(merger().validateJson([])).rejects.toThrow();
+});
+
+test('missing CLI opt-out is portable while the default still fails', async () => {
+  unlinkSync(
+    path.join(root, process.platform === 'win32' ? 'shopify.cmd' : 'shopify'),
+  );
+  process.env[pathKey] = root;
+  expect(await merger(false).validateJson([])).toBe(true);
+  await expect(merger(true).validateJson([])).rejects.toThrow();
+});
+
+test.each([
+  { offenses: [] },
+  {
+    offenses: [
+      {
+        check: 'Syntax',
+        severity: 'warning',
+        message: 'bad',
+        start_row: 0,
+        start_column: 0,
+      },
+    ],
+  },
+])(
+  'rejects inconsistent legacy counts instead of accepting malformed reports: %j',
+  async ({ offenses }) => {
+    process.env.CHECK_REPORT = JSON.stringify([
+      {
+        path: path.join(root, 'templates/page.json'),
+        offenses,
+        errorCount: 1,
+        warningCount: 0,
+        infoCount: 0,
+      },
+    ]);
+    for (const code of ['0', '1']) {
+      process.env.CHECK_EXIT = code;
+      await expect(
+        merger().validateJson(['templates/page.json']),
+      ).rejects.toThrow(/counts/);
+    }
+  },
+);
+
+test('rejects contradictory flat report counters', async () => {
+  process.env.CHECK_REPORT = JSON.stringify({
+    valid: true,
+    issues: [],
+    errorCount: 1,
+    warningCount: 0,
+    infoCount: 0,
+  });
+  await expect(merger().validateJson([])).rejects.toThrow(/counts/);
 });

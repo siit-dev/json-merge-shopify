@@ -2,9 +2,10 @@ name: Shopify CLI compatibility
 on: [pull_request, workflow_dispatch]
 jobs:
   theme-check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         cli: ['3.94.3', '4.9.5', '5.0.1']
     steps:
       - uses: actions/checkout@v4

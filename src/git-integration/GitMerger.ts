@@ -10,10 +10,8 @@ import { Merger } from '../merger/Merger';
 // @ts-ignore
 import prettier from 'prettier';
 import appRoot from 'app-root-path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import execa from 'execa';
 import chalk from 'chalk';
-const execAsync = promisify(exec);
 import * as JSON5 from 'json5';
 
 export type ThemeCheckResultOffense = {
@@ -962,8 +960,9 @@ export class GitMerger {
     let exitCode = 0;
     let diagnostics = '';
     try {
-      ({ stdout } = await execAsync(
-        'shopify theme check --output json --no-color',
+      ({ stdout } = await execa(
+        'shopify',
+        ['theme', 'check', '--output', 'json', '--no-color'],
         {
           cwd: this.gitRoot || undefined,
           // Shopify resolves npm's INIT_CWD before the subprocess working directory.
@@ -972,18 +971,18 @@ export class GitMerger {
         },
       ));
     } catch (error: any) {
-      if (error.code === 127 && !this.failIfThemeCheckMissing) {
+      if (error.code === 'ENOENT' && !this.failIfThemeCheckMissing) {
         await this.logWarning(
           'Shopify CLI was not found; validation was explicitly disabled for a missing tool.',
         );
         return true;
       }
-      if (typeof error.code !== 'number' || error.signal) {
+      if (!Number.isInteger(error.exitCode) || error.signal || error.timedOut) {
         throw new Error('Shopify Theme Check could not run.');
       }
       stdout = String(error.stdout ?? '');
       diagnostics = String(error.stderr ?? '').trim();
-      exitCode = error.code;
+      exitCode = error.exitCode;
     }
 
     // Legacy CLI versions can append a known agent hint after a complete report.
@@ -1010,13 +1009,28 @@ export class GitMerger {
       ? report.flatMap((file: any) => {
           if (typeof file?.path !== 'string' || !Array.isArray(file.offenses))
             throw new Error('Invalid legacy Theme Check report.');
-          return file.offenses.map((offense: any) => ({
-            filePath: file.path,
-            severity: offense.severity,
-            message: offense.message,
-            startRow: Math.max(offense.start_row + 1, 1),
-            startColumn: Math.max(offense.start_column + 1, 1),
-          }));
+          for (const severity of ['error', 'warning', 'info']) {
+            if (
+              file[`${severity}Count`] !==
+              file.offenses.filter((issue: any) => issue?.severity === severity)
+                .length
+            )
+              throw new Error('Theme Check counts do not match its offenses.');
+          }
+          return file.offenses.map((offense: any) => {
+            if (
+              !Number.isInteger(offense?.start_row) ||
+              !Number.isInteger(offense?.start_column)
+            )
+              throw new Error('Shopify Theme Check returned an invalid issue.');
+            return {
+              filePath: file.path,
+              severity: offense.severity,
+              message: offense.message,
+              startRow: Math.max(offense.start_row + 1, 1),
+              startColumn: Math.max(offense.start_column + 1, 1),
+            };
+          });
         })
       : report?.issues;
     if (
@@ -1036,6 +1050,16 @@ export class GitMerger {
         issue.startColumn < 1
       ) {
         throw new Error('Shopify Theme Check returned an invalid issue.');
+      }
+    }
+    if (!Array.isArray(report)) {
+      for (const severity of ['error', 'warning', 'info']) {
+        const count = report[`${severity}Count`];
+        if (
+          count !== undefined &&
+          count !== issues.filter((issue) => issue.severity === severity).length
+        )
+          throw new Error('Theme Check counts do not match its issues.');
       }
     }
     if (
