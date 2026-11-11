@@ -967,11 +967,27 @@ export class GitMerger {
           cwd: this.gitRoot || undefined,
           // Shopify resolves npm's INIT_CWD before the subprocess working directory.
           env: { ...process.env, INIT_CWD: this.gitRoot || process.cwd() },
+          extendEnv: false,
           maxBuffer: 64 * 1024 * 1024,
         },
       ));
     } catch (error: any) {
-      if (error.code === 'ENOENT' && !this.failIfThemeCheckMissing) {
+      let missingTool = error.code === 'ENOENT';
+      if (
+        !this.failIfThemeCheckMissing &&
+        !missingTool &&
+        process.platform === 'win32'
+      ) {
+        // cmd shims can exit without ENOENT; use the OS lookup instead of parsing localized stderr.
+        const lookup = await execa('where.exe', ['shopify'], {
+          cwd: this.gitRoot || undefined,
+          env: { ...process.env },
+          extendEnv: false,
+          reject: false,
+        });
+        missingTool = lookup.exitCode === 1;
+      }
+      if (missingTool && !this.failIfThemeCheckMissing) {
         await this.logWarning(
           'Shopify CLI was not found; validation was explicitly disabled for a missing tool.',
         );
@@ -994,7 +1010,10 @@ export class GitMerger {
       report = JSON.parse(text);
     } catch {
       throw new Error(
-        'Shopify Theme Check did not return a complete JSON report.',
+        `Shopify Theme Check did not return a complete JSON report (exit ${exitCode}). ${diagnostics.slice(
+          0,
+          2000,
+        )}`,
       );
     }
     if (report?.error)
